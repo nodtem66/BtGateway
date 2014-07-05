@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<selector
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res/org.cardioart.gateway">
+    <item app:state_connection_success="true" android:drawable="@drawable/greencircle" />
+    <item app:state_connection_fail="true" android:drawable="@drawable/redcircle" />
+    <item app:state_connection_success="false"
+        app:state_connection_fail="false"
+        android:drawable="@drawable/yellowcircle" />
+</selector>

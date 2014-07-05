@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="ConnectionState">
+        <attr name="state_connection_success" format="boolean"/>
+        <attr name="state_connection_fail" format="boolean"/>
+    </declare-styleable>
+</resources>

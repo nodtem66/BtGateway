@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="500"
+   height="500"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.48.4 r9939"
+   sodipodi:docname="New document 1">
+  <defs
+     id="defs4" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="1.066"
+     inkscape:cx="97.091932"
+     inkscape:cy="250"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1280"
+     inkscape:window-height="753"
+     inkscape:window-x="-4"
+     inkscape:window-y="-4"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0,-552.36218)">
+    <rect
+       style="fill:#000000;stroke:#ffffff;stroke-width:4"
+       id="rect2993"
+       width="500.93808"
+       height="500.93808"
+       x="0.93808633"
+       y="1.8761727"
+       transform="translate(0,552.36218)" />
+    <g
+       id="g2995"
+       transform="translate(28.142589,14.071295)"
+       inkscape:export-filename="C:\Users\jirawat\AndroidStudioProjects\GraphIt\GraphIt\src\main\res\drawable-hdpi\RedCircle.png"
+       inkscape:export-xdpi="17.27"
+       inkscape:export-ydpi="17.27">
+      <path
+         sodipodi:type="arc"
+         style="fill:#ffffff;fill-rule:evenodd;stroke:#ffffff;stroke-width:4;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         id="path2987"
+         sodipodi:cx="239.68105"
+         sodipodi:cy="242.49532"
+         sodipodi:rx="154.3152"
+         sodipodi:ry="148.68668"
+         d="m 393.99625,242.49532 c 0,82.11738 -69.08927,148.68667 -154.3152,148.68667 -85.22594,0 -154.315205,-66.56929 -154.315205,-148.68667 0,-82.11739 69.089265,-148.68668 154.315205,-148.68668 85.22593,0 154.3152,66.56929 154.3152,148.68668 z"
+         transform="translate(0,551.42409)" />
+      <path
+         transform="translate(0,552.36218)"
+         d="m 393.99625,242.49532 c 0,82.11738 -69.08927,148.68667 -154.3152,148.68667 -85.22594,0 -154.315205,-66.56929 -154.315205,-148.68667 0,-82.11739 69.089265,-148.68668 154.315205,-148.68668 85.22593,0 154.3152,66.56929 154.3152,148.68668 z"
+         sodipodi:ry="148.68668"
+         sodipodi:rx="154.3152"
+         sodipodi:cy="242.49532"
+         sodipodi:cx="239.68105"
+         id="path2985"
+         style="fill:#ffcb00;fill-rule:evenodd;stroke:#000000;stroke-width:3;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;fill-opacity:1"
+         sodipodi:type="arc"
+         inkscape:export-filename="C:\Users\jirawat\AndroidStudioProjects\GraphIt\GraphIt\src\main\res\drawable-xxhdpi\YellowCircle.png"
+         inkscape:export-xdpi="34.65704"
+         inkscape:export-ydpi="34.65704" />
+    </g>
+  </g>
+</svg>

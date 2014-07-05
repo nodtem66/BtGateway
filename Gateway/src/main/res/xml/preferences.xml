@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory
+        android:title="@string/pref_bluetooth_title"
+        android:key="pref_key_bluetooth_settings">
+        <CheckBoxPreference
+            android:key="pref_ket_bluetooth_server"
+            android:summary="Enable Bluetooth Server Mode"
+            android:title="Server Mode"
+            android:defaultValue="false" />
+    </PreferenceCategory>
+</PreferenceScreen>
