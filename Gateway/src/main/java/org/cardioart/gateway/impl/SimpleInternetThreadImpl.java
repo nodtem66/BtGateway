@@ -13,11 +13,6 @@ import org.cardioart.gateway.api.InternetThread;
 import org.cardioart.gateway.api.MyChannel;
 import org.cardioart.gateway.api.MyMessage;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 
@@ -28,12 +23,15 @@ public class SimpleInternetThreadImpl extends Thread implements InternetThread {
     private final String TAG = "NETT";
     private final int LIMIT = 30;
     private final Handler mainHandler;
+    private final double secSamplingTime = 1.0d/360;
 
     private Source source;
     private ChannelMap sMap;
     private BlockingQueue<MyMessage> blockingQueue = new LinkedBlockingDeque<MyMessage>(LIMIT);
     private long lastByteSend = 0;
     private int[] channelIndexs = new int[1];
+    private boolean isInitTimeSeries = false;
+    private double secTimestamp;
 
     public SimpleInternetThreadImpl(Handler handler) throws SAPIException {
         Log.d(TAG, "BEGIN InternetThread");
@@ -48,7 +46,9 @@ public class SimpleInternetThreadImpl extends Thread implements InternetThread {
             MyMessage message;
             while (!interrupted()) {
                 message = blockingQueue.take();
-                sMap.PutDataAsInt16(channelIndexs[0], message.data);
+                //sMap.PutTime(message.getStart(), message.getDuration());
+                sMap.PutTimes(message.time);
+                sMap.PutDataAsInt32(channelIndexs[0], message.data);
                 synchronized (this) {
                     source.Flush(sMap, true);
                 }
@@ -76,9 +76,8 @@ public class SimpleInternetThreadImpl extends Thread implements InternetThread {
     private void initialDataturbineChannel() throws SAPIException{
         source = new Source(2048, "none", 2048);
         source.CloseRBNBConnection();
-        source.OpenRBNBConnection("192.168.2.100:3333", "Android1");
+        source.OpenRBNBConnection("128.199.182.116:3333", "Android1");
         sMap = new ChannelMap();
-        sMap.PutTimeAuto("timeofday");
         for (int i=0; i<1; i++) {
             sMap.Add(MyChannel.getName(i));
             channelIndexs[i] = sMap.GetIndex(MyChannel.getName(i));
@@ -112,6 +111,11 @@ public class SimpleInternetThreadImpl extends Thread implements InternetThread {
     public boolean sendMyMessage(byte[] byteData) {
         int id, shortLength;
         byte channel, opt;
+        if (!isInitTimeSeries) {
+            isInitTimeSeries = true;
+            secTimestamp = (double)(System.currentTimeMillis())/1000.0d;
+            Log.d(TAG, "Time:" + Double.toString(secTimestamp));
+        }
         if (byteData.length >= 8) {
             id = byteData[0] << 24;
             id += byteData[1] << 16;
@@ -119,15 +123,27 @@ public class SimpleInternetThreadImpl extends Thread implements InternetThread {
             id += byteData[3];
             channel = byteData[4];
             opt = byteData[5];
+
             MyMessage message = new MyMessage(id, channel, opt);
             shortLength = byteData.length - 6;
-            message.data = new short[shortLength/2];
-            for(int i=0; i<shortLength/2; i++) {
-                message.data[i] = (short) (byteData[6 + 2 * i] << 8);
-                message.data[i] += (short) byteData[7 + 2 * i];
+            message.data = new int[shortLength/2];
+            message.time = new double[shortLength/2];
+            for(int i=0,len = shortLength/2; i < len; i++) {
+                message.data[i] = (byteData[6 + 2 * i] << 8);
+                message.data[i] += byteData[7 + 2 * i];
+                message.time[i] = secTimestamp;
+                secTimestamp += secSamplingTime;
             }
+            //Log.d(TAG, "shortLength: " + shortLength);
+            //Log.d(TAG, "secSamplingTime: " + secSamplingTime);
+            //Log.d(TAG, "secNextTimeFrame: " + secNextTimeFrame);
             return sendMyMessage(message);
         }
         return false;
+    }
+
+    @Override
+    public void setSecTimestamp(double timestamp) {
+        secTimestamp = timestamp;
     }
 }

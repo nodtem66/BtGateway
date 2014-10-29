@@ -120,6 +120,8 @@ public class GatewayActivity extends ActionBarActivity implements Handler.Callba
                 if (!isBtRxActive) {
                     isBtRxActive = true;
                     btRxStatus.setTextColor(Color.GREEN);
+                    double time = System.currentTimeMillis()/1000.d;
+                    internetThread.setSecTimestamp(time);
                 }
                 break;
             case STATE_BT_RX_DOWN:

@@ -7,6 +7,7 @@
 ./gradle*
 ./*.gradle
 ./*.iml
+build/
 gradle.properties
 gradlew*
 settings.gradle

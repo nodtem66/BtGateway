@@ -46,7 +46,7 @@ public class SpamThread extends Thread {
                 synchronized (this) {
                     source.Flush(sMap, true);
                 }
-                sleep(100);
+                sleep(20);
             }
         } catch (Exception e) {
             Log.d(TAG, "EXP: " + e.getLocalizedMessage());
@@ -64,7 +64,7 @@ public class SpamThread extends Thread {
     private void initialDataturbineChannel() throws SAPIException{
         source = new Source(2048, "none", 2048);
         source.CloseRBNBConnection();
-        source.OpenRBNBConnection("192.168.2.100:3333", "HelloSine");
+        source.OpenRBNBConnection("128.199.182.116:3333", "HelloSine");
         sMap = new ChannelMap();
         sMap.PutTimeAuto("timeofday");
         for (int i=0; i<13; i++) {

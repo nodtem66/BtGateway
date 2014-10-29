@@ -15,4 +15,5 @@ public interface InternetThread extends Runnable{
     boolean isEmpty();
     boolean sendMyMessage(MyMessage message);
     boolean sendMyMessage(byte[] message);
+    void setSecTimestamp(double timestamp);
 }

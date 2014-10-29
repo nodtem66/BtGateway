@@ -105,4 +105,6 @@ public class TestInternetThreadImpl extends Thread implements InternetThread {
     public boolean sendMyMessage(byte[] data) {
         return true;
     }
+    @Override
+    public void setSecTimestamp(double time) {};
 }

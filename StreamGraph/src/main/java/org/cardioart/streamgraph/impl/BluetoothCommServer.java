@@ -1,6 +1,7 @@
-package org.cardioart.gateway.api;
+package org.cardioart.streamgraph.impl;
 
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.os.Handler;
@@ -8,7 +9,8 @@ import android.os.HandlerThread;
 import android.os.Message;
 import android.util.Log;
 
-import org.cardioart.gateway.activity.GatewayActivity;
+import org.cardioart.streamgraph.api.BluetoothConnection;
+import org.cardioart.streamgraph.api.MyEvent;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,28 +25,11 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * Created by jirawat on 02/06/2014.
  */
-public class BluetoothCommHelper {
-    public enum CommState {
-        NONE,
-        LISTEN,
-        CONNECTED,
-        DISCONNECTED;
+public class BluetoothCommServer extends BluetoothConnection {
 
-        public static CommState fromInt(int x) {
-            switch(x) {
-                case 0:
-                    return NONE;
-                case 1:
-                    return LISTEN;
-                case 2:
-                    return CONNECTED;
-                case 3:
-                    return DISCONNECTED;
-            }
-            return null;
-        }
-    }
     public static final int ACTION_NOTIFY   = 0;
+    public static final String COMMAND_KEY  = "command_key";
+    public static final String COMMAND_START_LISTENING = "command_start_discovery";
     private static final String TAG         = "BtS";
     private static final UUID MY_UUID       = UUID.fromString("513a6c9c-ea27-4abd-90c0-6997dd532866");
     private static final String SDP_NAME    = "BtGateway";
@@ -68,7 +53,7 @@ public class BluetoothCommHelper {
      * Constructor
      * @param handler
      */
-    public BluetoothCommHelper(Handler handler) {
+    public BluetoothCommServer(Handler handler) {
         mAdapter = BluetoothAdapter.getDefaultAdapter();
         mCommState = CommState.NONE;
         mainHandler = handler;
@@ -84,12 +69,12 @@ public class BluetoothCommHelper {
                         startListening();
                     }
                     Log.d(TAG, "Msg: notify " + msg.arg1);
-                } else if (msg.what == GatewayActivity.STATE_INTERNET_THREAD_MSG) {
+                } else if (msg.what == MyEvent.STATE_INTERNET_THREAD_MSG) {
                     //Log.
                     synchronized (this) {
                         rxByte += msg.arg2;
                     }
-                    mainHandler.obtainMessage(GatewayActivity.STATE_INTERNET_THREAD_MSG, msg.obj).sendToTarget();
+                    mainHandler.obtainMessage(MyEvent.STATE_INTERNET_THREAD_MSG, msg.obj).sendToTarget();
 
                 } else {
                     Log.d(TAG, "mHandler ELSE");
@@ -102,35 +87,36 @@ public class BluetoothCommHelper {
         //if (connectedThread != null) {
         //    stopConnectSocket();
         //}
-        stopListen();
+        stopListening();
         listeningThread = new ListeningThread(this, mHandle);
         listeningThread.start();
     }
 
-    public synchronized void stopListen() {
+    public synchronized void stopListening() {
         if (listeningThread != null) {
             listeningThread.interrupt();
             listeningThread.cancel();
         }
     }
-    public synchronized void startConnectSocket(BluetoothSocket socket) {
+    public void startConnection(BluetoothDevice device) {}
+    public synchronized void startConnection(BluetoothSocket socket) {
         //if (listeningThread != null) {
         //    stopListen();
         //}
-        stopConnectSocket();
+        stopConnection();
         connectedThread = new ConnectedThread(this, socket, mHandle);
         connectedThread.start();
     }
 
-    public synchronized void stopConnectSocket() {
+    public synchronized void stopConnection() {
         if (connectedThread != null) {
             connectedThread.interrupt();
             connectedThread.cancel();
         }
     }
     public synchronized void stop() {
-        stopListen();
-        stopConnectSocket();
+        stopListening();
+        stopConnection();
     }
     public synchronized long getRxSpeed() {
         long buffer = rxByte;
@@ -148,14 +134,14 @@ public class BluetoothCommHelper {
     public synchronized void setState(CommState commState) {
         mCommState = commState;
         if (commState == CommState.NONE) {
-            mainHandler.obtainMessage(GatewayActivity.STATE_BT_RX_DOWN).sendToTarget();
-            mainHandler.obtainMessage(GatewayActivity.STATE_BT_SERVER_DOWN).sendToTarget();
+            mainHandler.obtainMessage(MyEvent.STATE_BT_RX_DOWN).sendToTarget();
+            mainHandler.obtainMessage(MyEvent.STATE_BT_SERVER_DOWN).sendToTarget();
         } else if (commState == CommState.LISTEN) {
-            mainHandler.obtainMessage(GatewayActivity.STATE_BT_SERVER_UP).sendToTarget();
+            mainHandler.obtainMessage(MyEvent.STATE_BT_SERVER_UP).sendToTarget();
         } else if (commState == CommState.CONNECTED) {
-            mainHandler.obtainMessage(GatewayActivity.STATE_BT_RX_UP).sendToTarget();
+            mainHandler.obtainMessage(MyEvent.STATE_BT_RX_UP).sendToTarget();
         } else if (commState == CommState.DISCONNECTED) {
-            mainHandler.obtainMessage(GatewayActivity.STATE_BT_RX_DOWN).sendToTarget();
+            mainHandler.obtainMessage(MyEvent.STATE_BT_RX_DOWN).sendToTarget();
         }
     }
 
@@ -165,10 +151,10 @@ public class BluetoothCommHelper {
      */
     private static class ListeningThread extends Thread {
         private final BluetoothServerSocket serverSocket;
-        private final WeakReference<BluetoothCommHelper> mBluetoothComm;
+        private final WeakReference<BluetoothCommServer> mBluetoothComm;
         private final Handler mHandler;
-        public ListeningThread(BluetoothCommHelper bluetoothCommHelper, Handler handler) {
-            mBluetoothComm = new WeakReference<BluetoothCommHelper>(bluetoothCommHelper);
+        public ListeningThread(BluetoothCommServer bluetoothCommServer, Handler handler) {
+            mBluetoothComm = new WeakReference<BluetoothCommServer>(bluetoothCommServer);
             mHandler = handler;
             setName("ListeningThread");
             BluetoothServerSocket tmp = null;
@@ -199,7 +185,7 @@ public class BluetoothCommHelper {
                         break;
                     }
                     if (socket != null) {
-                        mBluetoothComm.get().startConnectSocket(socket);
+                        mBluetoothComm.get().startConnection(socket);
                     }
                 }
                 Log.d(TAG, "EXIT LOOP listeningThread");
@@ -231,10 +217,10 @@ public class BluetoothCommHelper {
         private final InputStream mInputStream;
         private final OutputStream mOutputStream;
         private final Handler mHandler;
-        private final WeakReference<BluetoothCommHelper> mBluetoothComm;
+        private final WeakReference<BluetoothCommServer> mBluetoothComm;
         private volatile boolean hasStartedTimeoutTask = false;
-        public ConnectedThread(BluetoothCommHelper comm, BluetoothSocket socket, Handler handler) {
-            mBluetoothComm = new WeakReference<BluetoothCommHelper>(comm);
+        public ConnectedThread(BluetoothCommServer comm, BluetoothSocket socket, Handler handler) {
+            mBluetoothComm = new WeakReference<BluetoothCommServer>(comm);
             mHandler = handler;
             mSocket = socket;
             InputStream tmpIn = null;
@@ -274,7 +260,7 @@ public class BluetoothCommHelper {
                             byte[] buffer = new byte[byteLength];
                             readStatus = mInputStream.read(buffer, 0, byteLength);
                             //byteBuffer.put(buffer);
-                            mHandler.obtainMessage(GatewayActivity.STATE_INTERNET_THREAD_MSG, readStatus, byteLength, buffer).sendToTarget();
+                            mHandler.obtainMessage(MyEvent.STATE_INTERNET_THREAD_MSG, readStatus, byteLength, buffer).sendToTarget();
                         }
 
                     } catch (IOException e) {
