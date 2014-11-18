@@ -8,5 +8,21 @@
     <string name="action_refresh">Refresh</string>
     <string name="pref_bluetooth_title">Bluetooth</string>
     <string name="title_activity_gateway">Gateway</string>
+    <string name="channel_names_prompt">Choose Channel</string>
+
+    <string-array name="channel_names_array">
+        <item>Channel 1</item>
+        <item>Channel 2</item>
+        <item>Channel 3</item>
+        <item>Channel 4</item>
+        <item>Channel 5</item>
+        <item>Channel 6</item>
+        <item>Channel 7</item>
+        <item>Channel 8</item>
+    </string-array>
+    <string-array name="device_mode_array">
+        <item>View Graph</item>
+        <item>Gateway</item>
+    </string-array>
 
 </resources>

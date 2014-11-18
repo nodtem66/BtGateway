@@ -1,4 +1,4 @@
-package org.cardioart.gateway.activity;
+package org.cardioart.gateway.impl;
 
 import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
@@ -27,8 +27,6 @@ import org.cardioart.gateway.api.BluetoothConnection;
 import org.cardioart.gateway.api.BluetoothScanHelper;
 import org.cardioart.gateway.api.MyEvent;
 import org.cardioart.gateway.api.PacketReaderThread;
-import org.cardioart.gateway.impl.BluetoothCommClient;
-import org.cardioart.gateway.impl.Protocol2ReaderThreadImpl;
 
 import java.util.ArrayList;
 

@@ -1,11 +1,13 @@
 package org.cardioart.gateway.activity;
 
+import android.app.DialogFragment;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.support.v7.app.ActionBarActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -15,17 +17,19 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import org.cardioart.gateway.api.BluetoothScanHelper;
 import org.cardioart.gateway.R;
+import org.cardioart.gateway.api.BluetoothScanHelper;
+import org.cardioart.gateway.fragment.DeviceModeDialogFragment;
 
-public class MainActivity extends ActionBarActivity {
+public class DeviceSelectionActivity extends ActionBarActivity {
+    private static final String TAG = "gateway";
     public BluetoothScanHelper bluetoothScanHelper;
     private ArrayAdapter<String> adapterPaired;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_device);
         bluetoothScanHelper = new BluetoothScanHelper(this);
         bluetoothScanHelper.setTextViewStatus((Button) findViewById(R.id.buttonSearch));
         bluetoothScanHelper.enableBluetooth();
@@ -45,15 +49,20 @@ public class MainActivity extends ActionBarActivity {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 String device_name = (String) adapterView.getItemAtPosition(i);
+                String device_address = (String) bluetoothScanHelper.getDeviceAddressFromName(device_name);
+                DialogFragment dialogFragment = new DeviceModeDialogFragment(device_name, device_address);
+                dialogFragment.show(getFragmentManager(), "devicemode");
+                /*
                 Toast.makeText(
                         getApplicationContext(),
                         bluetoothScanHelper.getDeviceAddressFromName(device_name) + " select",
                         Toast.LENGTH_SHORT
                 ).show();
-                Intent graphIntent = new Intent(getApplicationContext(), GatewayActivity.class);
+                Intent graphIntent = new Intent(getApplicationContext(), GraphActivity.class);
                 graphIntent.putExtra("device_name", device_name);
-                graphIntent.putExtra("device_address", "");
+                graphIntent.putExtra("device_address", device_address);
                 startActivity(graphIntent);
+                */
             }
         });
 
@@ -89,6 +98,7 @@ public class MainActivity extends ActionBarActivity {
         int id = item.getItemId();
         if (id == R.id.action_settings) {
             Toast.makeText(this, "Setting", Toast.LENGTH_LONG).show();
+            Log.d(TAG, "Setting");
             return true;
         } else if (id == R.id.action_refresh) {
             bluetoothScanHelper.searchDevice();

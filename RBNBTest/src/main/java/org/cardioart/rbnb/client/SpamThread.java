@@ -72,7 +72,7 @@ public class SpamThread extends Thread {
             channelIndexs[i] = sMap.GetIndex(channelNames[i]);
             sMap.PutUserInfo(channelIndexs[i], "units=n, property=value");
             sMap.PutMime(channelIndexs[i], "application/octet-stream");
-        }
+        };
         source.Register(sMap);
         Log.d(TAG, "CHANNEL CREATE");
     }

@@ -11,7 +11,7 @@ import android.widget.ArrayAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.cardioart.gateway.activity.MainActivity;
+import org.cardioart.gateway.activity.DeviceSelectionActivity;
 
 import java.util.HashMap;
 import java.util.Set;
@@ -69,8 +69,8 @@ public class BluetoothScanHelper {
     public void enableBluetooth() {
         if (!mBluetoothAdapter.isEnabled()) {
             Intent enableBluetoothIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            MainActivity mainActivity = (MainActivity) this.context;
-            mainActivity.startActivityForResult(enableBluetoothIntent, REQUEST_ENABLE_BT);
+            DeviceSelectionActivity activity = (DeviceSelectionActivity) this.context;
+            activity.startActivityForResult(enableBluetoothIntent, REQUEST_ENABLE_BT);
         }
     }
     public void searchDevice() {
