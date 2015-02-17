@@ -1,4 +1,4 @@
-package org.cardioart.gateway.api;
+package org.cardioart.gateway.api.thread;
 
 /**
  * Created by jirawat on 18/09/2014.

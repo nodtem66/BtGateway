@@ -6,10 +6,10 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.ActionBarActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -19,38 +19,24 @@ import android.widget.TextView;
 
 import com.rbnb.sapi.SAPIException;
 
-import org.cardioart.gateway.api.BluetoothCommHelper;
-import org.cardioart.gateway.api.BluetoothScanHelper;
-import org.cardioart.gateway.api.InternetThread;
 import org.cardioart.gateway.R;
+import org.cardioart.gateway.api.constant.MyEvent;
+import org.cardioart.gateway.api.helper.bluetooth.BluetoothConnection;
+import org.cardioart.gateway.api.helper.bluetooth.BluetoothScanHelper;
+import org.cardioart.gateway.api.thread.InternetThread;
+import org.cardioart.gateway.impl.BluetoothCommClient;
 import org.cardioart.gateway.impl.SimpleInternetThreadImpl;
-import org.cardioart.gateway.impl.TestInternetThreadImpl;
 
 public class GatewayActivity extends ActionBarActivity implements Handler.Callback {
 
     private Handler mainHandler;
-    private BluetoothCommHelper commHelper;
+    private BluetoothConnection commHelper;
     private InternetThread internetThread;
     private EditText debugEditText;
     private TextView btServerStatus, btRxStatus, wifiClientStatus, wifiTxStatus;
     private TextView textViewTxSpeed, textViewRxSpeed, textViewConnectivityStatus;
 
-
     public static final String TAG = "BtG";
-    public static final int STATE_BT_SERVER_UP       = 0;
-    public static final int STATE_BT_SERVER_DOWN     = 1;
-    public static final int STATE_BT_RX_UP           = 2;
-    public static final int STATE_BT_RX_DOWN         = 3;
-    public static final int STATE_WIFI_CLIENT_UP     = 4;
-    public static final int STATE_WIFI_CLIENT_DOWN   = 5;
-    public static final int STATE_WIFI_TX_UP         = 6;
-    public static final int STATE_WIFI_TX_DOWN       = 7;
-    public static final int STATE_DEBUG_MSG          = 100;
-    public static final int STATE_DEBUG_TX           = 101;
-    public static final int STATE_DEBUG_RX           = 102;
-    public static final int STATE_INTERNET_THREAD_START = 103;
-    public static final int STATE_INTERNET_THREAD_STOP = 104;
-    public static final int STATE_INTERNET_THREAD_MSG = 105;
     public static final int REQUEST_ENABLE_BT = 2718;
     public static final BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
@@ -65,12 +51,19 @@ public class GatewayActivity extends ActionBarActivity implements Handler.Callba
 
     private Runnable mTimerMonitorSpeed;
 
+    private String deviceName;
+    private String deviceAddress;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_gateway);
+
+        deviceName = getIntent().getStringExtra("device_name");
+        deviceAddress = getIntent().getStringExtra("device_address");
+
         mainHandler = new Handler(this);
-        commHelper = new BluetoothCommHelper(mainHandler);
+        commHelper = new BluetoothCommClient(mainHandler);
 
         if (!mBluetoothAdapter.isEnabled()) {
             Intent enableBluetoothIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
@@ -104,19 +97,19 @@ public class GatewayActivity extends ActionBarActivity implements Handler.Callba
     @Override
     public boolean handleMessage(Message message) {
         switch (message.what) {
-            case STATE_BT_SERVER_UP:
+            case MyEvent.STATE_BT_SERVER_UP:
                 if (!isBtServerActive) {
                     isBtServerActive = true;
                     btServerStatus.setTextColor(Color.GREEN);
                 }
                 break;
-            case STATE_BT_SERVER_DOWN:
+            case MyEvent.STATE_BT_SERVER_DOWN:
                 if (isBtServerActive) {
                     isBtServerActive = false;
                     btServerStatus.setTextColor(Color.DKGRAY);
                 }
                 break;
-            case STATE_BT_RX_UP:
+            case MyEvent.STATE_BT_RX_UP:
                 if (!isBtRxActive) {
                     isBtRxActive = true;
                     btRxStatus.setTextColor(Color.GREEN);
@@ -124,13 +117,13 @@ public class GatewayActivity extends ActionBarActivity implements Handler.Callba
                     internetThread.setSecTimestamp(time);
                 }
                 break;
-            case STATE_BT_RX_DOWN:
+            case MyEvent.STATE_BT_RX_DOWN:
                 if (isBtRxActive) {
                     isBtRxActive = false;
                     btRxStatus.setTextColor(Color.DKGRAY);
                 }
                 break;
-            case STATE_INTERNET_THREAD_START:
+            case MyEvent.STATE_INTERNET_THREAD_START:
                 if (!isWifiClientActive) {
                     isWifiClientActive = true;
                     wifiClientStatus.setTextColor(Color.GREEN);
@@ -140,7 +133,7 @@ public class GatewayActivity extends ActionBarActivity implements Handler.Callba
                     wifiTxStatus.setTextColor(Color.GREEN);
                 }
                 break;
-            case STATE_INTERNET_THREAD_STOP:
+            case MyEvent.STATE_INTERNET_THREAD_STOP:
                 if (isWifiClientActive) {
                     isWifiClientActive = false;
                     wifiClientStatus.setTextColor(Color.DKGRAY);
@@ -153,22 +146,22 @@ public class GatewayActivity extends ActionBarActivity implements Handler.Callba
                     isWifiEnable = false;
                 }
                 break;
-            case STATE_INTERNET_THREAD_MSG:
+            case MyEvent.STATE_INTERNET_THREAD_MSG:
                 if (isWifiTxActive) {
                     internetThread.sendMyMessage((byte[]) message.obj);
                 }
                 break;
-            case STATE_DEBUG_RX:
+            case MyEvent.STATE_DEBUG_RX:
                 if (message.obj != null) {
                     debugRxSpeed((Long) message.obj);
                 }
                 break;
-            case STATE_DEBUG_TX:
+            case MyEvent.STATE_DEBUG_TX:
                 if (message.obj != null) {
                     debugTxSpeed((Long) message.obj);
                 }
                 break;
-            case STATE_DEBUG_MSG:
+            case MyEvent.STATE_DEBUG_MSG:
             default:
                 debugMessage((CharSequence)message.obj);
                 break;
@@ -192,14 +185,14 @@ public class GatewayActivity extends ActionBarActivity implements Handler.Callba
             @Override
             public void run() {
                 if (isBtRxActive) {
-                    mainHandler.obtainMessage(STATE_DEBUG_RX, commHelper.getRxSpeed()).sendToTarget();
+                    mainHandler.obtainMessage(MyEvent.STATE_DEBUG_RX, commHelper.getRxSpeed()).sendToTarget();
                 } else {
-                    mainHandler.obtainMessage(STATE_DEBUG_RX, 0L).sendToTarget();
+                    mainHandler.obtainMessage(MyEvent.STATE_DEBUG_RX, 0L).sendToTarget();
                 }
                 if (isWifiTxActive) {
-                    mainHandler.obtainMessage(STATE_DEBUG_TX, internetThread.getByteSend()).sendToTarget();
+                    mainHandler.obtainMessage(MyEvent.STATE_DEBUG_TX, internetThread.getByteSend()).sendToTarget();
                 } else {
-                    mainHandler.obtainMessage(STATE_DEBUG_TX, 0L).sendToTarget();
+                    mainHandler.obtainMessage(MyEvent.STATE_DEBUG_TX, 0L).sendToTarget();
                 }
                 mainHandler.postDelayed(this, 1000);
             }
@@ -242,10 +235,11 @@ public class GatewayActivity extends ActionBarActivity implements Handler.Callba
     public void enableBluetooth(View v) {
         if (!isBtEnable) {
             isBtEnable = true;
-            commHelper.startListening();
+            //TODO: test
+            commHelper.startConnection(mBluetoothAdapter.getRemoteDevice(deviceAddress));
         } else {
             isBtEnable = false;
-            commHelper.stopListen();
+            commHelper.stopConnection();
         }
     }
     public void enableWifi(View v) {
@@ -274,10 +268,6 @@ public class GatewayActivity extends ActionBarActivity implements Handler.Callba
             Log.d(TAG, "");
         }
     }
-    private void forwardToWifi(Object messageObject) {
-
-    }
-
     public void debugMessage(CharSequence text) {
         if (isDebug) {
             debugEditText.append(text + "\n");

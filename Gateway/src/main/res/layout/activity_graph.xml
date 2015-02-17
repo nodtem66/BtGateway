@@ -12,10 +12,23 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
-        <TextView
-            android:layout_width="match_parent"
+        <LinearLayout
+            android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/textDevice"/>
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/textDevice"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/textTime"
+                android:text="0 s"
+                android:layout_weight="1"
+                android:gravity="right"
+                android:layout_gravity="right"/>
+        </LinearLayout>
         <LinearLayout
             android:id="@+id/linearLayout2"
             android:layout_width="fill_parent"

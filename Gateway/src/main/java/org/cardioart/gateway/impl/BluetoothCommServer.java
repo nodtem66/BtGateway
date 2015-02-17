@@ -9,8 +9,8 @@ import android.os.HandlerThread;
 import android.os.Message;
 import android.util.Log;
 
-import org.cardioart.gateway.api.BluetoothConnection;
-import org.cardioart.gateway.api.MyEvent;
+import org.cardioart.gateway.api.helper.bluetooth.BluetoothConnection;
+import org.cardioart.gateway.api.constant.MyEvent;
 
 import java.io.IOException;
 import java.io.InputStream;

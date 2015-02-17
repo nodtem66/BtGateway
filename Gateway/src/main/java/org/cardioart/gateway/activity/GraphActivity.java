@@ -23,10 +23,10 @@ import com.jjoe64.graphview.GraphViewSeries;
 import com.jjoe64.graphview.LineGraphView;
 
 import org.cardioart.gateway.R;
-import org.cardioart.gateway.api.BluetoothConnection;
-import org.cardioart.gateway.api.BluetoothScanHelper;
-import org.cardioart.gateway.api.MyEvent;
-import org.cardioart.gateway.api.PacketReaderThread;
+import org.cardioart.gateway.api.constant.MyEvent;
+import org.cardioart.gateway.api.helper.bluetooth.BluetoothConnection;
+import org.cardioart.gateway.api.helper.bluetooth.BluetoothScanHelper;
+import org.cardioart.gateway.api.thread.PacketReaderThread;
 import org.cardioart.gateway.impl.BluetoothCommClient;
 import org.cardioart.gateway.impl.Protocol2ReaderThreadImpl;
 
@@ -51,6 +51,9 @@ public class GraphActivity extends ActionBarActivity implements Handler.Callback
     private TextView textViewRxPacket;
 
     private static final int GRAPHVIEW_SERIE_HISTORY_SIZE = 1000;
+    private static final double REFERENCE_VOLTAGE = 5;
+    private static final int ADC_RESOLUTION_BIT = 24;
+    private static final double ADC_TO_VOLTAGE_UNIT_MULTIPLIER = REFERENCE_VOLTAGE / Math.pow(2, ADC_RESOLUTION_BIT);
     private GraphView graphView;
     private GraphViewSeries series1;
     private double data1Time = 0d;
@@ -59,6 +62,7 @@ public class GraphActivity extends ActionBarActivity implements Handler.Callback
     private boolean isBluetoothActive = false;
     private boolean isPacketReaderActive = false;
     private int currentChannelId = 0;
+    private long secRunningTime = 0;
 
     public static final BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
@@ -72,7 +76,7 @@ public class GraphActivity extends ActionBarActivity implements Handler.Callback
                 break;
             case MyEvent.STATE_DEBUG_PACKET:
                 if (message.obj != null) {
-                    debugPacketReader((Long)message.obj);
+                    debugPacketReader((Long) message.obj);
                 }
                 break;
             case MyEvent.STATE_BT_RX_UP:
@@ -98,6 +102,7 @@ public class GraphActivity extends ActionBarActivity implements Handler.Callback
         }
         return false;
     }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -113,7 +118,7 @@ public class GraphActivity extends ActionBarActivity implements Handler.Callback
         mainHandler = new Handler(this);
         commHelper = new BluetoothCommClient(mainHandler);
         textViewRxSpeed = (TextView) findViewById(R.id.textViewRxSpeed);
-        textViewRxPacket= (TextView) findViewById(R.id.textViewRxPacket);
+        textViewRxPacket = (TextView) findViewById(R.id.textViewRxPacket);
 
         //Enable bluetooth
         if (!mBluetoothAdapter.isEnabled()) {
@@ -136,7 +141,7 @@ public class GraphActivity extends ActionBarActivity implements Handler.Callback
         graphView.setShowLegend(false);
         series1.getStyle().color = Color.GREEN;
         graphView.addSeries(series1);
-        graphView.setHorizontalLabels(new String[] {});
+        graphView.setHorizontalLabels(new String[]{});
         //graphView.setVerticalLabels(new String[]{"100", "75", "50", "25", "0"});
         graphView.getGraphViewStyle().setTextSize(getResources().getDimension(R.dimen.small));
         LinearLayout layout = (LinearLayout) findViewById(R.id.graph1);
@@ -172,6 +177,7 @@ public class GraphActivity extends ActionBarActivity implements Handler.Callback
         }
         return super.onOptionsItemSelected(item);
     }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -181,12 +187,14 @@ public class GraphActivity extends ActionBarActivity implements Handler.Callback
             }
         }
     }
+
     @Override
     public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
         if (adapterView != null) {
             currentChannelId = i;
         }
     }
+
     @Override
     public void onNothingSelected(AdapterView<?> adapterView) {
     }
@@ -202,10 +210,17 @@ public class GraphActivity extends ActionBarActivity implements Handler.Callback
                     mainHandler.obtainMessage(MyEvent.STATE_DEBUG_RX, 0L).sendToTarget();
                 }
                 if (isPacketReaderActive) {
+                    secRunningTime += 1;
                     mainHandler.obtainMessage(MyEvent.STATE_DEBUG_PACKET, packetReader.getTotalByteRead()).sendToTarget();
                 } else {
+                    secRunningTime = 0;
                     mainHandler.obtainMessage(MyEvent.STATE_DEBUG_PACKET, 27L).sendToTarget();
                 }
+                TextView textTime = (TextView) findViewById(R.id.textTime);
+                textTime.setText(String.format("%d:%d:%d",
+                        secRunningTime/3600, //For hour
+                        (secRunningTime /60) % 60, //For minute
+                        secRunningTime % 60)); // For seconds
                 mainHandler.postDelayed(this, 1000);
             }
         };
@@ -213,12 +228,71 @@ public class GraphActivity extends ActionBarActivity implements Handler.Callback
             @Override
             public void run() {
                 if (isPacketReaderActive) {
-                    Integer[] newData = packetReader.getChannel(currentChannelId);
-                    for (int i=0, length = newData.length; i < length; i++) {
-                        data1Time += 1;
-                        data1.remove(0);
-                        data1.add(new GraphViewData(data1Time, newData[i].doubleValue()));
+                    if (currentChannelId < 8) {
+                        Integer[] newData = packetReader.getChannel(currentChannelId);
+
+                        //Print array to graphview
+                        for (int i = 0, length = newData.length; i < length; i++) {
+                            data1Time += 1;
+                            data1.remove(0);
+                            //TODO: aad unit conversion
+                            data1.add(new GraphViewData(data1Time, newData[i].doubleValue() * ADC_TO_VOLTAGE_UNIT_MULTIPLIER));
+                        }
+
+                    } else if (currentChannelId == 8) {
+                        //Get Channel3 and Channel2 Data
+                        Integer[] channel3Data = packetReader.getChannel(2);
+                        Integer[] channel2Data = packetReader.getChannel(1);
+                        int length = channel2Data.length;
+                        if (length > channel3Data.length) {
+                            length = channel3Data.length;
+                        }
+                        for (int i = 0; i < length; i++) {
+                            data1Time += 1;
+                            data1.remove(0);
+                            data1.add(new GraphViewData(data1Time, (channel3Data[i] - channel2Data[i]) * ADC_TO_VOLTAGE_UNIT_MULTIPLIER));
+                        }
+                    } else if (currentChannelId == 9) {
+                        //Get Channel3 and Channel2 Data
+                        Integer[] channel3Data = packetReader.getChannel(2);
+                        Integer[] channel2Data = packetReader.getChannel(1);
+                        int length = channel2Data.length;
+                        if (length > channel3Data.length) {
+                            length = channel3Data.length;
+                        }
+                        for (int i = 0; i < length; i++) {
+                            data1Time += 1;
+                            data1.remove(0);
+                            data1.add(new GraphViewData(data1Time, (channel3Data[i] + channel2Data[i]) * 0.5 * ADC_TO_VOLTAGE_UNIT_MULTIPLIER));
+                        }
+                    } else if (currentChannelId == 10) {
+                        //Get Channel3 and Channel2 Data
+                        Integer[] channel3Data = packetReader.getChannel(2);
+                        Integer[] channel2Data = packetReader.getChannel(1);
+                        int length = channel2Data.length;
+                        if (length > channel3Data.length) {
+                            length = channel3Data.length;
+                        }
+                        for (int i = 0; i < length; i++) {
+                            data1Time += 1;
+                            data1.remove(0);
+                            data1.add(new GraphViewData(data1Time, (channel2Data[i] - channel3Data[i] * 0.5) * ADC_TO_VOLTAGE_UNIT_MULTIPLIER));
+                        }
+                    } else if (currentChannelId == 11) {
+                        //Get Channel3 and Channel2 Data
+                        Integer[] channel3Data = packetReader.getChannel(2);
+                        Integer[] channel1Data = packetReader.getChannel(0);
+                        int length = channel1Data.length;
+                        if (length > channel3Data.length) {
+                            length = channel3Data.length;
+                        }
+                        for (int i = 0; i < length; i++) {
+                            data1Time += 1;
+                            data1.remove(0);
+                            data1.add(new GraphViewData(data1Time, (channel3Data[i] - channel1Data[i] * 0.5) * ADC_TO_VOLTAGE_UNIT_MULTIPLIER));
+                        }
                     }
+
                     series1.resetData(data1.toArray(new GraphViewData[data1.size()]));
 
                 }
@@ -244,7 +318,7 @@ public class GraphActivity extends ActionBarActivity implements Handler.Callback
         super.onDestroy();
     }
 
-    private void debugRxSpeed (long totalByte) {
+    private void debugRxSpeed(long totalByte) {
         if (textViewRxSpeed != null) {
 
             double BPS = totalByte / 1024.0;
@@ -263,9 +337,11 @@ public class GraphActivity extends ActionBarActivity implements Handler.Callback
             }
         }
     }
+
     private void changeChannelGraph(int channel_id) {
 
     }
+
     private void debugPacketReader(long totalByte) {
         if (textViewRxPacket != null) {
             double BPS = totalByte / 1024.0;

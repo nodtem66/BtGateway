@@ -1,6 +1,6 @@
-package org.cardioart.gateway.api;
+package org.cardioart.gateway.api.thread;
 
-import android.os.Handler;
+import org.cardioart.gateway.api.constant.MyMessage;
 
 /**
  * Created by jirawat on 06/07/2014.

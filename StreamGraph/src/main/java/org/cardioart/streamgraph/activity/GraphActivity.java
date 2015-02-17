@@ -217,7 +217,7 @@ public class GraphActivity extends ActionBarActivity implements Handler.Callback
                     for (int i=0, length = newData.length; i < length; i++) {
                         data1Time += 1;
                         data1.remove(0);
-                        data1.add(new GraphViewData(data1Time, newData[i].doubleValue()));
+                        data1.add(new GraphViewData(data1Time, (double)newData[i].longValue()));
                     }
                     series1.resetData(data1.toArray(new GraphViewData[data1.size()]));
 

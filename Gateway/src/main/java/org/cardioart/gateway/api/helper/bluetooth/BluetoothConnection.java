@@ -1,4 +1,4 @@
-package org.cardioart.gateway.api;
+package org.cardioart.gateway.api.helper.bluetooth;
 
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;

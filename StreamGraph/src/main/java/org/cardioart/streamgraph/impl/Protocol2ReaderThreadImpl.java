@@ -34,7 +34,7 @@ public class Protocol2ReaderThreadImpl extends PacketReaderThread {
     private int state = 0; //Current Position
     private int channel = 0;
     private int channel_offset = 0;
-    private int byteTemp = 0;
+    private Integer byteTemp = 0;
 
     private static final String TAG = "streamgraph";
     private final int LIMIT = 30;
@@ -58,7 +58,7 @@ public class Protocol2ReaderThreadImpl extends PacketReaderThread {
         }
         state = STATE_START;
         channel = 0;
-        channel_offset = 0;
+        channel_offset = 16;
         byteTemp = 0;
     }
     @Override
@@ -104,13 +104,18 @@ public class Protocol2ReaderThreadImpl extends PacketReaderThread {
                     channel = 0;
             } else if (state > STATE_STATUS_2) {
                 if (channel_offset == 16) {
-                    byteTemp = data[i] << channel_offset;
+                    byteTemp = (data[i] & 0xFF) << 16;
                     channel_offset = 8;
                 } else if (channel_offset == 8) {
-                    byteTemp += data[i] << channel_offset;
+                    byteTemp += (data[i] & 0xFF) << 8;
                     channel_offset = 0;
                 } else if (channel_offset == 0) {
-                    byteTemp += data[i] << channel_offset;
+                    byteTemp += (data[i] & 0xFF);
+                    if (byteTemp < 0)
+                    {
+                        Log.d(TAG, String.format("byteTemp: %d (%d,%d,%d)",
+                                byteTemp, data[i], data[i-1], data[i-2]));
+                    }
                     synchronized (mChannelLock) {
                         if (channel >= 0 && channel < MAX_CHANNEL) {
                             arrayChannel.get(channel).add(byteTemp);

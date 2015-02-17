@@ -11,14 +11,18 @@
     <string name="channel_names_prompt">Choose Channel</string>
 
     <string-array name="channel_names_array">
-        <item>Channel 1</item>
-        <item>Channel 2</item>
-        <item>Channel 3</item>
-        <item>Channel 4</item>
-        <item>Channel 5</item>
-        <item>Channel 6</item>
-        <item>Channel 7</item>
-        <item>Channel 8</item>
+        <item>V6 - Ch1</item>
+        <item>Lead1 - Ch2</item>
+        <item>Lead2 - Ch3</item>
+        <item>V2 - Ch4</item>
+        <item>V3 - Ch5</item>
+        <item>V4 - Ch6</item>
+        <item>V5 - Ch7</item>
+        <item>V1 - Ch8</item>
+        <item>Lead3 - Ch9</item>
+        <item>aVR - Ch10</item>
+        <item>aVL - Ch11</item>
+        <item>aVF - Ch12</item>
     </string-array>
     <string-array name="device_mode_array">
         <item>View Graph</item>

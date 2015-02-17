@@ -1,4 +1,4 @@
-package org.cardioart.gateway.api;
+package org.cardioart.gateway.api.constant;
 
 /**
  * Created by jirawat on 06/07/2014.

@@ -1,4 +1,4 @@
-package org.cardioart.gateway.api;
+package org.cardioart.gateway.api.view;
 
 import android.content.Context;
 import android.view.LayoutInflater;

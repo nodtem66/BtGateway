@@ -8,8 +8,9 @@ import com.rbnb.sapi.SAPIException;
 import com.rbnb.sapi.Source;
 
 import org.cardioart.gateway.activity.GatewayActivity;
-import org.cardioart.gateway.api.InternetThread;
-import org.cardioart.gateway.api.MyMessage;
+import org.cardioart.gateway.api.constant.MyEvent;
+import org.cardioart.gateway.api.thread.InternetThread;
+import org.cardioart.gateway.api.constant.MyMessage;
 
 /**
  * Created by jirawat on 06/07/2014.
@@ -36,7 +37,7 @@ public class TestInternetThreadImpl extends Thread implements InternetThread {
     public void run() {
         try {
             initialDataturbineChannel();
-            mainHandler.obtainMessage(GatewayActivity.STATE_INTERNET_THREAD_START).sendToTarget();
+            mainHandler.obtainMessage(MyEvent.STATE_INTERNET_THREAD_START).sendToTarget();
             short[] values = new short[1000];
             while (!interrupted()) {
 
@@ -57,7 +58,7 @@ public class TestInternetThreadImpl extends Thread implements InternetThread {
         } finally {
             Log.d(TAG, "END InternetThread");
             source.CloseRBNBConnection();
-            mainHandler.obtainMessage(GatewayActivity.STATE_INTERNET_THREAD_STOP).sendToTarget();
+            mainHandler.obtainMessage(MyEvent.STATE_INTERNET_THREAD_STOP).sendToTarget();
         }
     }
     @Override

@@ -1,4 +1,4 @@
-package org.cardioart.gateway.api;
+package org.cardioart.gateway.api.helper.bluetooth;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;
@@ -9,6 +9,7 @@ import android.os.Message;
 import android.util.Log;
 
 import org.cardioart.gateway.activity.GatewayActivity;
+import org.cardioart.gateway.api.constant.MyEvent;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -84,12 +85,12 @@ public class BluetoothCommHelper {
                         startListening();
                     }
                     Log.d(TAG, "Msg: notify " + msg.arg1);
-                } else if (msg.what == GatewayActivity.STATE_INTERNET_THREAD_MSG) {
+                } else if (msg.what == MyEvent.STATE_INTERNET_THREAD_MSG) {
                     //Log.
                     synchronized (this) {
                         rxByte += msg.arg2;
                     }
-                    mainHandler.obtainMessage(GatewayActivity.STATE_INTERNET_THREAD_MSG, msg.obj).sendToTarget();
+                    mainHandler.obtainMessage(MyEvent.STATE_INTERNET_THREAD_MSG, msg.obj).sendToTarget();
 
                 } else {
                     Log.d(TAG, "mHandler ELSE");
@@ -148,14 +149,14 @@ public class BluetoothCommHelper {
     public synchronized void setState(CommState commState) {
         mCommState = commState;
         if (commState == CommState.NONE) {
-            mainHandler.obtainMessage(GatewayActivity.STATE_BT_RX_DOWN).sendToTarget();
-            mainHandler.obtainMessage(GatewayActivity.STATE_BT_SERVER_DOWN).sendToTarget();
+            mainHandler.obtainMessage(MyEvent.STATE_BT_RX_DOWN).sendToTarget();
+            mainHandler.obtainMessage(MyEvent.STATE_BT_SERVER_DOWN).sendToTarget();
         } else if (commState == CommState.LISTEN) {
-            mainHandler.obtainMessage(GatewayActivity.STATE_BT_SERVER_UP).sendToTarget();
+            mainHandler.obtainMessage(MyEvent.STATE_BT_SERVER_UP).sendToTarget();
         } else if (commState == CommState.CONNECTED) {
-            mainHandler.obtainMessage(GatewayActivity.STATE_BT_RX_UP).sendToTarget();
+            mainHandler.obtainMessage(MyEvent.STATE_BT_RX_UP).sendToTarget();
         } else if (commState == CommState.DISCONNECTED) {
-            mainHandler.obtainMessage(GatewayActivity.STATE_BT_RX_DOWN).sendToTarget();
+            mainHandler.obtainMessage(MyEvent.STATE_BT_RX_DOWN).sendToTarget();
         }
     }
 
@@ -274,7 +275,7 @@ public class BluetoothCommHelper {
                             byte[] buffer = new byte[byteLength];
                             readStatus = mInputStream.read(buffer, 0, byteLength);
                             //byteBuffer.put(buffer);
-                            mHandler.obtainMessage(GatewayActivity.STATE_INTERNET_THREAD_MSG, readStatus, byteLength, buffer).sendToTarget();
+                            mHandler.obtainMessage(MyEvent.STATE_INTERNET_THREAD_MSG, readStatus, byteLength, buffer).sendToTarget();
                         }
 
                     } catch (IOException e) {

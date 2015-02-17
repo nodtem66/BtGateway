@@ -18,7 +18,7 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import org.cardioart.gateway.R;
-import org.cardioart.gateway.api.BluetoothScanHelper;
+import org.cardioart.gateway.api.helper.bluetooth.BluetoothScanHelper;
 import org.cardioart.gateway.fragment.DeviceModeDialogFragment;
 
 public class DeviceSelectionActivity extends ActionBarActivity {
@@ -50,7 +50,7 @@ public class DeviceSelectionActivity extends ActionBarActivity {
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 String device_name = (String) adapterView.getItemAtPosition(i);
                 String device_address = (String) bluetoothScanHelper.getDeviceAddressFromName(device_name);
-                DialogFragment dialogFragment = new DeviceModeDialogFragment(device_name, device_address);
+                DialogFragment dialogFragment = DeviceModeDialogFragment.newInstance(device_name, device_address);
                 dialogFragment.show(getFragmentManager(), "devicemode");
                 /*
                 Toast.makeText(

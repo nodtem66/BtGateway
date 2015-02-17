@@ -4,8 +4,10 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
-import org.cardioart.gateway.api.MyEvent;
-import org.cardioart.gateway.api.PacketReaderThread;
+import org.cardioart.gateway.api.PacketReader;
+import org.cardioart.gateway.api.constant.MyEvent;
+import org.cardioart.gateway.api.thread.PacketReaderThread;
+import org.cardioart.gateway.impl.reader.Protocol2PacketReader;
 
 import java.util.ArrayList;
 import java.util.concurrent.BlockingQueue;
@@ -19,24 +21,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class Protocol2ReaderThreadImpl extends PacketReaderThread {
 
-    private static final int STATE_START = 0;
-    private static final int STATE_HEADER_0 = 1;
-    private static final int STATE_HEADER_COUNTER = 2;
-    private static final int STATE_HEADER_1 = 2;
-    private static final int STATE_HEADER_2 = 3;
-    private static final int STATE_STATUS_0 = 4;
-    private static final int STATE_STATUS_1 = 5;
-    private static final int STATE_STATUS_2 = 6;
-    private static final int STATE_CH1_0 = 7;
-    private static final int STATE_CH1_1 = 8;
-    private static final int STATE_CH1_2 = 9;
-    private static final int STATE_END = 31;
-    private int state = 0; //Current Position
-    private int channel = 0;
-    private int channel_offset = 0;
-    private int byteTemp = 0;
-
-    private static final String TAG = "gateway";
+    private static final String TAG = "streamgraph";
     private final int LIMIT = 30;
     private final int MAX_CHANNEL = 10;
     private final Handler mainHandler;
@@ -48,7 +33,8 @@ public class Protocol2ReaderThreadImpl extends PacketReaderThread {
 
     private BlockingQueue<byte[]> blockingQueue = new LinkedBlockingDeque<byte[]>(LIMIT);
     private ArrayList<ArrayList<Integer>> arrayChannel = new ArrayList<ArrayList<Integer>>(MAX_CHANNEL);
-    private long totalByteRead = 0L;
+
+    private final PacketReader packetReader;
 
     public Protocol2ReaderThreadImpl(Handler mHandler) {
         Log.d(TAG, "BEGIN PacketReaderThread");
@@ -56,10 +42,7 @@ public class Protocol2ReaderThreadImpl extends PacketReaderThread {
         for (int i=0; i < MAX_CHANNEL; i++) {
             arrayChannel.add(new ArrayList<Integer>());
         }
-        state = STATE_START;
-        channel = 0;
-        channel_offset = 0;
-        byteTemp = 0;
+        packetReader = new Protocol2PacketReader(MAX_CHANNEL, mChannelLock, arrayChannel);
     }
     @Override
     public void run() {
@@ -84,46 +67,7 @@ public class Protocol2ReaderThreadImpl extends PacketReaderThread {
     }
 
     private void readByte(byte[] data) {
-        int length = data.length;
-        totalByteRead += length;
-        //Parse data 3byte (8group) length
-        for (int i = 0; i < length; i++) {
-            //Check Header Protocol
-            if (state == STATE_END && data[i] != 0x04) {continue;}
-            else if (state == STATE_START && data[i] != 0x01) {continue;}
-            else if (state == STATE_HEADER_0 && data[i] != 0x01) {continue;}
-            else if (state == STATE_HEADER_2 && data[i] != 0x01) {continue;}
-
-            //Skip status byte (3byte)
-            if (state == STATE_END) {
-                state = STATE_START;
-                continue;
-            } else if (state == STATE_STATUS_2) {
-                    channel_offset = 16;
-                    byteTemp = 0;
-                    channel = 0;
-            } else if (state > STATE_STATUS_2) {
-                if (channel_offset == 16) {
-                    byteTemp = data[i] << channel_offset;
-                    channel_offset = 8;
-                } else if (channel_offset == 8) {
-                    byteTemp += data[i] << channel_offset;
-                    channel_offset = 0;
-                } else if (channel_offset == 0) {
-                    byteTemp += data[i] << channel_offset;
-                    synchronized (mChannelLock) {
-                        if (channel >= 0 && channel < MAX_CHANNEL) {
-                            arrayChannel.get(channel).add(byteTemp);
-                        }
-                    }
-                    channel++;
-                    channel_offset = 16;
-                }
-            }
-            state++;
-        }
-
-        //*/
+        packetReader.readByte(data);
     }
     public Integer[] getChannel(int index) {
         Integer[] result;
@@ -131,7 +75,10 @@ public class Protocol2ReaderThreadImpl extends PacketReaderThread {
             synchronized (mChannelLock) {
                 int length = arrayChannel.get(index).size();
                 result = arrayChannel.get(index).toArray(new Integer[length]);
-                arrayChannel.get(index).clear();
+                //TODO: may fix this
+                for (int i=0; i< MAX_CHANNEL; i++) {
+                    arrayChannel.get(i).clear();
+                }
             }
         } else {
             result = new Integer[0];
@@ -153,10 +100,6 @@ public class Protocol2ReaderThreadImpl extends PacketReaderThread {
         }
     }
     public long getTotalByteRead() {
-        long buffer = totalByteRead;
-        synchronized (this) {
-            totalByteRead = 0;
-        }
-        return buffer;
+        return packetReader.getTotalByteRead();
     }
 }
