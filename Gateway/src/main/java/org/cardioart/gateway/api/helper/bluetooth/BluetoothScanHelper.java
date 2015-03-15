@@ -11,6 +11,7 @@ import android.widget.ArrayAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.cardioart.gateway.R;
 import org.cardioart.gateway.activity.DeviceSelectionActivity;
 
 import java.util.HashMap;
@@ -51,7 +52,7 @@ public class BluetoothScanHelper {
                     Toast.makeText(context, "No Bluetooth Devices", Toast.LENGTH_LONG).show();
                     Log.d("BT", "No BT Devices");
                 }
-                textViewStatus.setText("Search");
+                textViewStatus.setText(context.getText(R.string.search_button));
                 textViewStatus.setTextColor(Color.parseColor("#FFFFFFFF"));
                 textViewStatus.setEnabled(true);
             }
@@ -82,7 +83,7 @@ public class BluetoothScanHelper {
         textViewStatus.setEnabled(false);
         textViewStatus.setTextColor(Color.parseColor("#FF333333"));
         searchPairedDevice();
-        textViewStatus.setText("Search");
+        textViewStatus.setText(context.getText(R.string.search_button));
         textViewStatus.setTextColor(Color.parseColor("#FFFFFFFF"));
         textViewStatus.setEnabled(true);
         //mBluetoothAdapter.startDiscovery();

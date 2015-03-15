@@ -3,12 +3,80 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:orientation="vertical" >
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="1. Settings"
+        android:layout_margin="10dp"
+        android:textColor="#FF0099FF" />
+
+    <TableLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/tableLayer1">
+        <TableRow
+            android:id="@+id/tableRow1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="5dip">
+            <TextView
+                android:text="DeviceID"
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:textAppearance="?android:textAppearanceSmall"/>
+            <TextView
+                android:id="@+id/textViewDeviceID"
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:textAppearance="?android:textAppearanceMedium"
+                android:paddingLeft="8dip"
+                android:textColor="#33DD00"
+                android:text="device"
+                android:textStyle="bold"
+                android:paddingBottom="0dp" />
+        </TableRow>
+        <TableRow
+            android:id="@+id/tableRow2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="5dip">
+            <TextView
+                android:text="PatientID"
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:textAppearance="?android:textAppearanceSmall"
+                android:maxLength="27" />
+            <EditText
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/editTextPatientID" />
+        </TableRow>
+        <TableRow
+            android:id="@+id/tableRow3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="5dip">
+            <TextView
+                android:text="Server IP"
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:textAppearance="?android:textAppearanceSmall"/>
+            <EditText
+                android:id="@+id/editTextServerIP"
+                android:layout_height="wrap_content"
+                android:layout_width="fill_parent"
+                android:maxLength="27" />
+        </TableRow>
+    </TableLayout>
+
+
 
     <Button
         android:id="@+id/buttonSearch"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Search"
+        android:text="@string/search_button"
         android:clickable="false"
         android:enabled="true" />
 
@@ -16,7 +84,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="Paired"
+        android:text="3. Select Paired"
         android:id="@+id/textView1"
         android:layout_margin="10dp"
         android:textColor="#FF0099FF" />
@@ -25,6 +93,5 @@
         android:id="@+id/listViewPaired"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
-
     </ListView>
 </LinearLayout>

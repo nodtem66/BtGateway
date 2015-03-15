@@ -9,6 +9,7 @@
     <string name="pref_bluetooth_title">Bluetooth</string>
     <string name="title_activity_gateway">Gateway</string>
     <string name="channel_names_prompt">Choose Channel</string>
+    <string name="search_button">2. Search for Bluetooths</string>
 
     <string-array name="channel_names_array">
         <item>V6 - Ch1</item>
