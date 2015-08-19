@@ -50,7 +50,9 @@
             <EditText
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:id="@+id/editTextPatientID" />
+                android:id="@+id/editTextPatientID"
+                android:singleLine="true"
+                android:minWidth="180dp" />
         </TableRow>
         <TableRow
             android:id="@+id/tableRow3"
@@ -66,11 +68,17 @@
                 android:id="@+id/editTextServerIP"
                 android:layout_height="wrap_content"
                 android:layout_width="fill_parent"
-                android:maxLength="27" />
+                android:maxLength="27"
+                android:singleLine="true"
+                android:minWidth="180dp" />
+            <Button
+                android:id="@+id/buttonPingServer"
+                android:layout_width="wrap_content"
+                android:layout_height="30dp"
+                android:text="@string/ping_server_button"
+                android:textSize="10dp" />
         </TableRow>
     </TableLayout>
-
-
 
     <Button
         android:id="@+id/buttonSearch"

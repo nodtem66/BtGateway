@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.telephony.TelephonyManager;
@@ -22,13 +23,18 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.rbnb.sapi.Source;
+
 import org.cardioart.gateway.R;
 import org.cardioart.gateway.api.helper.bluetooth.BluetoothScanHelper;
 import org.cardioart.gateway.fragment.DeviceModeDialogFragment;
 
+import static org.cardioart.gateway.activity.DeviceSelectionActivity.OSDT_PORT;
+
 public class DeviceSelectionActivity extends ActionBarActivity {
     private static final String TAG = "gateway";
     public static final String PREF_NAME = "BtG_Pref";
+    public static final String OSDT_PORT = "3333";
     public BluetoothScanHelper bluetoothScanHelper;
     private ArrayAdapter<String> adapterPaired;
 
@@ -89,7 +95,7 @@ public class DeviceSelectionActivity extends ActionBarActivity {
         // Get Phone number from SIM CARD
         // this can view manually by going to setting > phone > sim card manager
         TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-        String simNumber = telephonyManager.getLine1Number();
+        final String simNumber = telephonyManager.getLine1Number();
 
         // Set DeviceId using SimNumber and SimSerialNumber
         TextView textViewDeviceId = (TextView) findViewById(R.id.textViewDeviceID);
@@ -98,9 +104,50 @@ public class DeviceSelectionActivity extends ActionBarActivity {
         // load preferences from device
         SharedPreferences settings = getSharedPreferences(PREF_NAME, 0);
         String patientId = settings.getString("patientID", "1010-demo");
+        final String serverIp = settings.getString("serverIP", "128.199.136.68");
         // Set Default PatientID
-        EditText editTextPatientId = (EditText) findViewById(R.id.editTextPatientID);
+        final EditText editTextPatientId = (EditText) findViewById(R.id.editTextPatientID);
         editTextPatientId.setText(patientId);
+        // Set Validation event when user edited PatientID
+        editTextPatientId.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View view, boolean hasFocus) {
+                if (!hasFocus) {
+                    //validate patent id
+                    String patientId = editTextPatientId.getText().toString();
+                    if (patientId.matches("[\\w\\d\\-_]+")) {
+                        editTextPatientId.setTextColor(Color.parseColor("#33DD00"));
+                    } else {
+                        editTextPatientId.setTextColor(Color.RED);
+                    }
+                }
+            }
+        });
+        // Set Default ServerIP
+        final EditText editTextServerIp = (EditText) findViewById(R.id.editTextServerIP);
+        editTextServerIp.setText(serverIp);
+        // Set Click event for Ping Server Button
+        final Button pingServerButton = (Button) findViewById(R.id.buttonPingServer);
+        pingServerButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                try {
+                    Source source = new Source(2048, "none", 2048);
+                    source.CloseRBNBConnection();
+                    source.OpenRBNBConnection(serverIp + ":" + OSDT_PORT, simNumber);
+                    if (source.VerifyConnection()) {
+                        Toast.makeText(DeviceSelectionActivity.this, "Hello from " + source.GetServerName(), Toast.LENGTH_LONG).show();
+                        editTextServerIp.setTextColor(Color.parseColor("#33DD00"));
+                    } else {
+                        editTextServerIp.setTextColor(Color.RED);
+                    }
+                } catch (Exception exception) {
+                    pingServerButton.setText("Error");
+                    Toast.makeText(DeviceSelectionActivity.this, exception.getMessage(), Toast.LENGTH_LONG).show();
+                    Log.e(TAG, exception.getMessage());
+                }
+            }
+        });
     }
 
 
@@ -114,14 +161,14 @@ public class DeviceSelectionActivity extends ActionBarActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-        if (id == R.id.action_settings) {
-            Toast.makeText(this, "Setting", Toast.LENGTH_LONG).show();
-            Log.d(TAG, "Setting");
-            return true;
+        if (id == R.id.action_gps) {
+            // go to GPS test mode activity
+            final EditText editText = (EditText) findViewById(R.id.editTextServerIP);
+            String serverIp = editText.getText().toString();
+            Intent intent = new Intent(this, GPSActivity.class);
+            intent.putExtra("server_ip", serverIp + ":" + OSDT_PORT);
+            startActivity(intent);
         } else if (id == R.id.action_refresh) {
             bluetoothScanHelper.searchDevice();
             return true;

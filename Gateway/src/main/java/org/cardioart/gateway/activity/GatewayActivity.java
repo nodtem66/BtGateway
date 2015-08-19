@@ -222,7 +222,7 @@ public class GatewayActivity extends ActionBarActivity implements Handler.Callba
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.gateway, menu);
+        getMenuInflater().inflate(R.menu.main, menu);
         return true;
     }
 
@@ -232,7 +232,7 @@ public class GatewayActivity extends ActionBarActivity implements Handler.Callba
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-        return id == R.id.action_settings || super.onOptionsItemSelected(item);
+        return super.onOptionsItemSelected(item);
     }
 
     public void enableBluetooth(View v) {

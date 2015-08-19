@@ -95,12 +95,13 @@
             android:text="WIFI Transmitor"
             />
     </LinearLayout>
+
     <TextView
         android:id="@+id/textViewdebug"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="Debug  "
+        android:text="Speed  "
         android:layout_marginTop="20dp"
         android:layout_below="@id/linearLayout"
         android:textColor="#FF0099FF" />
@@ -118,7 +119,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="RX: "
-            android:textColor="#ff26d124" />
+            android:textColor="#ff0066ff" />
         <TextView
             android:id="@+id/textViewRxSpeed"
             android:layout_width="wrap_content"
@@ -130,7 +131,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="  TX: "
-            android:textColor="#ff26d124" />
+            android:textColor="#ff0066ff" />
         <TextView
             android:id="@+id/textViewTxSpeed"
             android:layout_width="wrap_content"
@@ -138,12 +139,59 @@
             android:layout_marginLeft="7dp"
             android:text="0 Bps"
             android:textColor="#FF999999" />
-        </LinearLayout>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/textViewGPS"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="Location  "
+        android:layout_marginTop="20dp"
+        android:layout_below="@id/linearLayout2"
+        android:textColor="#FF0099FF" />
+
+    <LinearLayout
+        android:id="@+id/linearLayout4"
+        android:orientation="horizontal"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/textViewGPS"
+        android:layout_marginTop="10dp"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Latitude: "
+            android:textColor="#ff0066ff" />
+        <TextView
+            android:id="@+id/textViewLat"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="7dp"
+            android:text="0 Bps"
+            android:textColor="#FF999999" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="  Longtitude: "
+            android:textColor="#ff0066ff" />
+        <TextView
+            android:id="@+id/textViewTxLong"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="7dp"
+            android:text="0 Bps"
+            android:textColor="#FF999999" />
+    </LinearLayout>
+
     <View
         android:layout_width="fill_parent"
         android:layout_height="1dp"
         android:background="#FF333333"
-        android:layout_below="@id/linearLayout2"
+        android:layout_below="@id/linearLayout4"
         android:layout_marginTop="10dp"
         android:layout_centerHorizontal="true"
         android:id="@+id/view" />

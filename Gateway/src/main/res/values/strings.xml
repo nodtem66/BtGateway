@@ -1,15 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">BtGateway</string>
-    <string name="app_version">0.0.1-dev</string>
+    <string name="app_name">BtHeart</string>
+    <string name="app_version">0.0.2-dev</string>
     <string name="hello_world">Hello world!</string>
+    <string name="action_home">Main</string>
+    <string name="action_gps">GPS Test Mode</string>
+    <string name="action_dataturbine">Server Settings</string>
     <string name="action_settings">Settings</string>
     <string name="action_refresh">Refresh</string>
     <string name="pref_bluetooth_title">Bluetooth</string>
     <string name="title_activity_gateway">Gateway</string>
     <string name="channel_names_prompt">Choose Channel</string>
     <string name="search_button">2. Search for Bluetooths</string>
+    <string name="ping_server_button">Check</string>
+    <string name="google_map_key">AIzaSyDznH1Ww2nXEx23hTthmB7BQIddRp7tWzM</string>
 
     <string-array name="channel_names_array">
         <item>V6 - Ch1</item>
@@ -29,5 +34,6 @@
         <item>View Graph</item>
         <item>Gateway</item>
     </string-array>
+    <string name="title_activity_gps">GPS Test Mode</string>
 
 </resources>
