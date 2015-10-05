@@ -58,7 +58,7 @@ public class GPSActivity extends FragmentActivity implements
         buildGoogleApiClient();
         createLocationRequest();
 
-        // register listene to scanning button
+        // register listener to scanning button
         Button buttonScan = (Button) findViewById(R.id.buttonScan);
         buttonScan.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -186,19 +186,5 @@ public class GPSActivity extends FragmentActivity implements
                 mCurrentLocation.getLongitude());
         // Move the camera to show the marker.
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(position, 14));
-    }
-
-    private void updateValuesFromBundle(Bundle savedInstanceState) {
-        if (savedInstanceState != null) {
-            if (savedInstanceState.containsKey(REQUEST_LOCATION_UPDATE_KEY)) {
-                isRequestingLocationUpdates = savedInstanceState.getBoolean(REQUEST_LOCATION_UPDATE_KEY);
-                //setButtonEnabledState();
-            }
-
-            if (savedInstanceState.containsKey(LOCATION_KEY)) {
-                mCurrentLocation = savedInstanceState.getParcelable(LOCATION_KEY);
-            }
-            updateUI();
-        }
     }
 }

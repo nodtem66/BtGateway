@@ -6,5 +6,7 @@ package org.cardioart.gateway.api.thread;
 public abstract class PacketReaderThread extends Thread implements Runnable{
     abstract public Integer[] getChannel(int index);
     abstract public void readPacket(byte[] data);
+    abstract public void clearChannel(int index);
+    abstract public void clearAllChannel();
     abstract public long getTotalByteRead();
 }

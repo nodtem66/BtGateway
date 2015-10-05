@@ -239,10 +239,11 @@ public class GatewayActivity extends ActionBarActivity implements Handler.Callba
         if (!isBtEnable) {
             isBtEnable = true;
             //TODO: test
-            commHelper.startConnection(mBluetoothAdapter.getRemoteDevice(deviceAddress));
+            commHelper.start();
+            commHelper.connect(mBluetoothAdapter.getRemoteDevice(deviceAddress));
         } else {
             isBtEnable = false;
-            commHelper.stopConnection();
+            commHelper.stop();
         }
     }
     public void enableWifi(View v) {

@@ -12,8 +12,8 @@
     <string name="pref_bluetooth_title">Bluetooth</string>
     <string name="title_activity_gateway">Gateway</string>
     <string name="channel_names_prompt">Choose Channel</string>
-    <string name="search_button">2. Search for Bluetooths</string>
-    <string name="ping_server_button">Check</string>
+    <string name="search_button">3. Search for Bluetooths</string>
+    <string name="ping_server_button">2. Check</string>
     <string name="google_map_key">AIzaSyDznH1Ww2nXEx23hTthmB7BQIddRp7tWzM</string>
 
     <string-array name="channel_names_array">

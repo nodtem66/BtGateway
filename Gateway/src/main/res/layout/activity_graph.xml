@@ -57,6 +57,18 @@
                 android:id="@+id/textViewRxPacket"
                 android:layout_weight="1"
                 android:gravity="right" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/textViewGPSLat"
+                android:layout_weight="1"
+                android:gravity="right" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/textViewGPSLong"
+                android:layout_weight="1"
+                android:gravity="right" />
         </LinearLayout>
 
         <LinearLayout

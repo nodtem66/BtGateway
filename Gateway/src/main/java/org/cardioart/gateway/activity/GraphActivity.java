@@ -4,10 +4,12 @@ import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
+import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -26,14 +28,17 @@ import org.cardioart.gateway.R;
 import org.cardioart.gateway.api.constant.MyEvent;
 import org.cardioart.gateway.api.helper.bluetooth.BluetoothConnection;
 import org.cardioart.gateway.api.helper.bluetooth.BluetoothScanHelper;
+import org.cardioart.gateway.api.helper.gps.GPSConnection;
+import org.cardioart.gateway.api.helper.gps.GPSHelper;
 import org.cardioart.gateway.api.thread.PacketReaderThread;
 import org.cardioart.gateway.impl.BluetoothCommClient;
 import org.cardioart.gateway.impl.Protocol2ReaderThreadImpl;
+import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 
 
-public class GraphActivity extends ActionBarActivity implements Handler.Callback, AdapterView.OnItemSelectedListener {
+public class GraphActivity extends AppCompatActivity implements Handler.Callback, AdapterView.OnItemSelectedListener {
 
     private static final int MAX_CHANNEL = 8;
     private static final int MAX_SAMPLE_LENGTH = 300;
@@ -44,11 +49,15 @@ public class GraphActivity extends ActionBarActivity implements Handler.Callback
 
     private Handler mainHandler;
     private BluetoothConnection commHelper;
+    private GPSConnection gpsHelper;
     private PacketReaderThread packetReader;
     private Runnable mTimerMonitorSpeed;
     private Runnable mTimerGraphPlot;
+    private Runnable mTimerGPS;
     private TextView textViewRxSpeed;
     private TextView textViewRxPacket;
+    private TextView textViewGPSLat;
+    private TextView textViewGPSLong;
 
     private static final int GRAPHVIEW_SERIE_HISTORY_SIZE = 1000;
     private static final double REFERENCE_VOLTAGE = 5;
@@ -85,7 +94,6 @@ public class GraphActivity extends ActionBarActivity implements Handler.Callback
                 break;
             case MyEvent.STATE_BT_RX_DOWN:
                 isBluetoothActive = false;
-                Toast.makeText(this, "connection stop", Toast.LENGTH_SHORT).show();
                 break;
             case MyEvent.STATE_PACKETREADER_THREAD_MSG:
             case MyEvent.STATE_INTERNET_THREAD_MSG:
@@ -117,8 +125,11 @@ public class GraphActivity extends ActionBarActivity implements Handler.Callback
         //Initialize private variables
         mainHandler = new Handler(this);
         commHelper = new BluetoothCommClient(mainHandler);
+        gpsHelper = new GPSHelper(this);
         textViewRxSpeed = (TextView) findViewById(R.id.textViewRxSpeed);
         textViewRxPacket = (TextView) findViewById(R.id.textViewRxPacket);
+        textViewGPSLat = (TextView) findViewById(R.id.textViewGPSLat);
+        textViewGPSLong = (TextView) findViewById(R.id.textViewGPSLong);
 
         //Enable bluetooth
         if (!mBluetoothAdapter.isEnabled()) {
@@ -152,7 +163,8 @@ public class GraphActivity extends ActionBarActivity implements Handler.Callback
         spinner.setOnItemSelectedListener(this);
         //Start bluetooth thread
         if (mBluetoothAdapter.isEnabled()) {
-            commHelper.startConnection(mBluetoothAdapter.getRemoteDevice(deviceAddress));
+            commHelper.start();
+            commHelper.connect(mBluetoothAdapter.getRemoteDevice(deviceAddress));
             //Start PacketReader thread
             packetReader = new Protocol2ReaderThreadImpl(mainHandler);
             packetReader.start();
@@ -198,6 +210,13 @@ public class GraphActivity extends ActionBarActivity implements Handler.Callback
 
     @Override
     protected void onResume() {
+        //Show toast on resume
+        Toast.makeText(GraphActivity.this, "Resume", Toast.LENGTH_SHORT).show();
+        //Enable GPS from Google Location Service
+        if (gpsHelper.isConnected()) {
+            gpsHelper.startLocationUpdates();
+        }
+        // update speed every 1000 msec
         mTimerMonitorSpeed = new Runnable() {
             @Override
             public void run() {
@@ -221,6 +240,22 @@ public class GraphActivity extends ActionBarActivity implements Handler.Callback
                 mainHandler.postDelayed(this, 1000);
             }
         };
+        // update GPS every 3000 msec
+        mTimerGPS = new Runnable() {
+            @Override
+            public void run() {
+                if (gpsHelper.isLocationUpdated()) {
+                    Location location = gpsHelper.getGPSLocation();
+                    textViewGPSLat.setText(String.format("Lat: %.5f", location.getLatitude()));
+                    textViewGPSLong.setText(String.format("Lng: %.5f", location.getLongitude()));
+                }
+                if (!gpsHelper.isLocationRequested() && gpsHelper.isConnected()) {
+                    gpsHelper.startLocationUpdates();
+                }
+                mainHandler.postDelayed(this, 3000);
+            }
+        };
+        // update graph every 100ms
         mTimerGraphPlot = new Runnable() {
             @Override
             public void run() {
@@ -289,14 +324,16 @@ public class GraphActivity extends ActionBarActivity implements Handler.Callback
                             data1.add(new GraphViewData(data1Time, (channel3Data[i] - channel1Data[i] * 0.5) * ADC_TO_VOLTAGE_UNIT_MULTIPLIER));
                         }
                     }
-
+                    //packetReader.clearAllChannel();
                     series1.resetData(data1.toArray(new GraphViewData[data1.size()]));
 
                 }
+                packetReader.clearAllChannel();
                 mainHandler.postDelayed(this, 100);
             }
         };
         mainHandler.postDelayed(mTimerMonitorSpeed, 1000);
+        mainHandler.postDelayed(mTimerGPS, 3000);
         mainHandler.postDelayed(mTimerGraphPlot, 100);
 
 
@@ -305,13 +342,16 @@ public class GraphActivity extends ActionBarActivity implements Handler.Callback
 
     @Override
     protected void onPause() {
-        mainHandler.removeCallbacks(mTimerMonitorSpeed);
+        //mainHandler.removeCallbacks(mTimerMonitorSpeed);
+        mainHandler.removeCallbacks(mTimerGraphPlot);
+        mainHandler.removeCallbacks(mTimerGPS);
         super.onPause();
     }
 
     @Override
     protected void onDestroy() {
         commHelper.stop();
+        gpsHelper.stopLocationUpdates();
         super.onDestroy();
     }
 
@@ -333,10 +373,6 @@ public class GraphActivity extends ActionBarActivity implements Handler.Callback
                 }
             }
         }
-    }
-
-    private void changeChannelGraph(int channel_id) {
-
     }
 
     private void debugPacketReader(long totalByte) {

@@ -17,7 +17,7 @@ import java.util.ArrayList;
  *   XX: not consider
  * Total 32 byte
  */
-public class Protocol2PacketReader extends PacketReader {
+public class  Protocol2PacketReader extends PacketReader {
 
     private int state;
     private int channel;
@@ -80,11 +80,13 @@ public class Protocol2PacketReader extends PacketReader {
                     channel_offset = 0;
                 } else if (channel_offset == 0) {
                     byteTemp += (data[i] & 0xFF);
+                    // Debug Message
+                    /*
                     if (byteTemp < 0)
                     {
                         Log.d(TAG, String.format("byteTemp: %d (%d,%d,%d)",
                                 byteTemp, data[i], data[i - 1], data[i - 2]));
-                    }
+                    }*/
                     synchronized (mChannelLock) {
                         if (channel >= 0 && channel < MAX_CHANNEL) {
                             arrayChannel.get(channel).add(byteTemp);

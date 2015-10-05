@@ -8,10 +8,11 @@ import android.bluetooth.BluetoothSocket;
  */
 public abstract class BluetoothConnection {
     public enum CommState {
-        NONE,
-        LISTEN,
-        CONNECTED,
-        DISCONNECTED;
+        NONE,       // doing nothing
+        LISTEN,     // used in server mode; listening for incoming connection
+        CONNECTING, // initiating an outgoing connection
+        CONNECTED,  // connected to a remote device
+        DISCONNECTED; // used in server mode; when the client is disconnected
 
         public static CommState fromInt(int x) {
             switch(x) {
@@ -20,19 +21,19 @@ public abstract class BluetoothConnection {
                 case 1:
                     return LISTEN;
                 case 2:
-                    return CONNECTED;
+                    return CONNECTING;
                 case 3:
+                    return CONNECTED;
+                case 4:
                     return DISCONNECTED;
             }
             return null;
         }
     }
-    abstract public void startListening();
-    abstract public void stopListening();
+    abstract public void start();
     abstract public void stop();
-    abstract public void startConnection(BluetoothSocket socket);
-    abstract public void startConnection(BluetoothDevice device);
-    abstract public void stopConnection();
+    abstract public void connect(BluetoothDevice device);
+    abstract public void connected(BluetoothSocket socket, BluetoothDevice device);
     abstract public long getRxSpeed();
     abstract public long getTxSpeed();
 }

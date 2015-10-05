@@ -8,23 +8,31 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v4.content.res.TypedArrayUtils;
 import android.widget.Toast;
 
 import org.cardioart.gateway.R;
 import org.cardioart.gateway.activity.GatewayActivity;
 import org.cardioart.gateway.activity.GraphActivity;
 
+import java.lang.reflect.Array;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Arrays;
+
 public class DeviceModeDialogFragment extends DialogFragment {
 
     private String deviceName;
     private String deviceAddress;
+    private boolean[] mShowDeviceModeMenu;
     private Context context;
 
-    public static DeviceModeDialogFragment newInstance(String deviceName, String deviceAddress) {
+    public static DeviceModeDialogFragment newInstance(String deviceName, String deviceAddress, boolean[] showDeviceModeMenu) {
         DeviceModeDialogFragment fragment = new DeviceModeDialogFragment();
         Bundle args = new Bundle();
         args.putString("device_name", deviceName);
-        args.putString("device_address", deviceAddress);;
+        args.putString("device_address", deviceAddress);
+        args.putBooleanArray("enable_menu", showDeviceModeMenu);
         fragment.setArguments(args);
         return fragment;
     }
@@ -40,12 +48,24 @@ public class DeviceModeDialogFragment extends DialogFragment {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         deviceName = getArguments().getString("device_name");
         deviceAddress = getArguments().getString("device_address");
+        mShowDeviceModeMenu = getArguments().getBooleanArray("enable_menu");
         context = getActivity().getApplicationContext();
+        String[] menuString = getResources().getStringArray(R.array.device_mode_array);
+        ArrayList<String> bufferMenuString = new ArrayList<String>();
+        for (int i=0; i < mShowDeviceModeMenu.length; i++) {
+            if (mShowDeviceModeMenu[i]) {
+                bufferMenuString.add(menuString[i]);
+            }
+        }
         builder.setTitle("Select Mode")
-               .setItems(R.array.device_mode_array, new DialogInterface.OnClickListener() {
+               .setItems(bufferMenuString.toArray(new CharSequence[bufferMenuString.size()]), new DialogInterface.OnClickListener() {
                    @Override
                    public void onClick(DialogInterface dialogInterface, int i) {
-                        openActivityFromChoice(i);
+                       if (mShowDeviceModeMenu[i]) {
+                           openActivityFromChoice(i);
+                       } else {
+                           Toast.makeText(context, "Cannot select this mode", Toast.LENGTH_LONG).show();
+                       }
                    }
                });
         return builder.create();

@@ -36,6 +36,8 @@ public class Protocol2ReaderThreadImpl extends PacketReaderThread {
 
     private final PacketReader packetReader;
 
+    // Constructor: inout the main UI-thread event handler in order to enable the communication
+    // between main thread and this local and non-UI thread
     public Protocol2ReaderThreadImpl(Handler mHandler) {
         Log.d(TAG, "BEGIN PacketReaderThread");
         mainHandler = mHandler;
@@ -44,7 +46,9 @@ public class Protocol2ReaderThreadImpl extends PacketReaderThread {
         }
         packetReader = new Protocol2PacketReader(MAX_CHANNEL, mChannelLock, arrayChannel);
     }
+
     @Override
+    // after start the thread this function will run once
     public void run() {
         Looper.prepare();
         mLock.lock();
@@ -66,25 +70,47 @@ public class Protocol2ReaderThreadImpl extends PacketReaderThread {
         }
     }
 
+    // Decorator the packet reader class
     private void readByte(byte[] data) {
         packetReader.readByte(data);
     }
+
+    // External used by UI-thread to get the data from buffer
     public Integer[] getChannel(int index) {
         Integer[] result;
         if (index >= 0 && index < MAX_CHANNEL) {
             synchronized (mChannelLock) {
                 int length = arrayChannel.get(index).size();
                 result = arrayChannel.get(index).toArray(new Integer[length]);
-                //TODO: may fix this
-                for (int i=0; i< MAX_CHANNEL; i++) {
-                    arrayChannel.get(i).clear();
-                }
+
+                // clear data in this channel
+                // arrayChannel.get(index).clear();
             }
         } else {
             result = new Integer[0];
         }
         return result;
     }
+
+    // External use by UI-thread to clear a input channel in cached data
+    public void clearChannel(int index) {
+        if (index >= 0 && index < MAX_CHANNEL) {
+            synchronized (mChannelLock) {
+                arrayChannel.get(index).clear();
+            }
+        }
+    }
+
+    // External use by UI-thread to clear all channel in cached data
+    public void clearAllChannel() {
+        synchronized (mChannelLock) {
+        for (int i=0; i < MAX_CHANNEL; i++) {
+                arrayChannel.get(i).clear();
+            }
+        }
+    }
+
+    // External use by UI-thread to transfer the packet from bluetooth thread to reader thread
     public void readPacket(byte[] data) {
         mLock.lock();
         try {
@@ -99,6 +125,7 @@ public class Protocol2ReaderThreadImpl extends PacketReaderThread {
             mLock.unlock();
         }
     }
+    // External use by UI-thread to get information about reader thread (reader speed)
     public long getTotalByteRead() {
         return packetReader.getTotalByteRead();
     }

@@ -71,15 +71,13 @@
                 android:maxLength="27"
                 android:singleLine="true"
                 android:minWidth="180dp" />
-            <Button
-                android:id="@+id/buttonPingServer"
-                android:layout_width="wrap_content"
-                android:layout_height="30dp"
-                android:text="@string/ping_server_button"
-                android:textSize="10dp" />
         </TableRow>
     </TableLayout>
-
+    <Button
+        android:id="@+id/buttonPingServer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/ping_server_button" />
     <Button
         android:id="@+id/buttonSearch"
         android:layout_width="match_parent"
@@ -92,7 +90,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="3. Select Paired"
+        android:text="4. Select Paired"
         android:id="@+id/textView1"
         android:layout_margin="10dp"
         android:textColor="#FF0099FF" />
