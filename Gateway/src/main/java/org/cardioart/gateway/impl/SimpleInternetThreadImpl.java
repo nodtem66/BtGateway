@@ -21,22 +21,26 @@ import java.util.concurrent.LinkedBlockingDeque;
 
 public class SimpleInternetThreadImpl extends Thread implements InternetThread {
 
+    // used in debug message
     private final String TAG = "NETT";
-    private final int LIMIT = 30;
-    private final Handler mainHandler;
+    private final boolean DEBUG = true;
 
-    //For packetreader
-    private final Handler mHandler;
-    private final int MAX_CHANNEL = MyChannel.MAX;
-    private final PacketReader packetReader;
+    // handler loop
+    private final Handler mainHandler;  // main ui handler
+    private final Handler mHandler;     // own handler for timer
+
+    // constant parameters
     // TODO: edit this number of sampling time
-    private final double secSamplingTime = 1.0d/600;
+    private final long hzSamplingFrequency = 600;
+    private final double secSamplingTime = 1.0d / hzSamplingFrequency;
 
-
+    // packet reader for parse raw data stream from incoming bluetooth device
+    private final PacketReader packetReader;
     private final Object mLock = new Object();
+    private final int MAX_CHANNEL = MyChannel.MAX;
     private ArrayList<ArrayList<Integer>> arrayChannel = new ArrayList<ArrayList<Integer>>(MAX_CHANNEL);
 
-    // timer
+    // timer for send the packet to dataturbine server
     private Runnable mTimerForSendMessage;
 
     // Datatubine connection
@@ -47,25 +51,31 @@ public class SimpleInternetThreadImpl extends Thread implements InternetThread {
     // Dataturbine object
     private Source source;
     private ChannelMap sMap;
-    // Queue-Message
-    private BlockingQueue<MyMessage> blockingQueue = new LinkedBlockingDeque<MyMessage>(LIMIT);
+
+    // Message queue
+    private final int QUEUE_LIMIT = 30;
+    private BlockingQueue<MyMessage> blockingQueue = new LinkedBlockingDeque<MyMessage>(QUEUE_LIMIT);
     private long lastByteSend = 0;
+
     // Cached Index of data map
     private int[] channelIndexs = new int[MAX_CHANNEL];
 
-    // For generate a timestamp
+    // For generate a timestamp for each channel
     private boolean isInitTimeSeries = false;
-    private double secTimestamp;
+    private double[] secTimestamp = new double[MAX_CHANNEL];
 
 
-    public SimpleInternetThreadImpl(Handler handler) throws SAPIException {
-        Log.d(TAG, "BEGIN InternetThread");
+    public SimpleInternetThreadImpl(Handler handler, String server, String device, String patient) throws SAPIException {
+        if (DEBUG) Log.d(TAG, "create InternetThread()");
 
         //initial  handler for timer
-        HandlerThread handlerThread = new HandlerThread("SimpleInternetandlethread");
+        HandlerThread handlerThread = new HandlerThread("SimpleInternetHandlerThread");
         handlerThread.start();
         mHandler = new Handler(handlerThread.getLooper());
         mainHandler = handler;
+        serverAddress = server;
+        deviceName = device;
+        patientId = patient;
 
         //initialize arrayChannel
         for(int i=0; i < MAX_CHANNEL; i++) {
@@ -77,16 +87,23 @@ public class SimpleInternetThreadImpl extends Thread implements InternetThread {
     }
     @Override
     public void run() {
+        Log.i(TAG, "BEGIN SimpleInternetThread");
+        setName("SimpleInternetThread");
+
         try {
             initialDataturbineChannel(serverAddress, deviceName, patientId);
-
             mainHandler.obtainMessage(MyEvent.STATE_INTERNET_THREAD_START).sendToTarget();
-            MyMessage message;
+        } catch (Exception e) {
+            Log.e(TAG, "unable to connection DataTurbine server: " + serverAddress, e);
+            cancel();
+            return;
+        }
+        try {
             while (!interrupted()) {
+                MyMessage message;
                 message = blockingQueue.take();
-                //sMap.PutTime(message.getStart(), message.getDuration());
+
                 int channel_index = message.id;
-                //byte channel_index = message.channel;
                 sMap.PutTimes(message.time);
                 sMap.PutDataAsInt32(channelIndexs[channel_index], message.data);
                 synchronized (this) {
@@ -94,17 +111,19 @@ public class SimpleInternetThreadImpl extends Thread implements InternetThread {
                 }
             }
         } catch (Exception e) {
-            Log.d(TAG, "EXP: " + e.getLocalizedMessage());
-            e.printStackTrace();
+            Log.e(TAG, "unable to sent the data to server", e);
+
         } finally {
-            Log.d(TAG, "END InternetThread");
-            stopTimer();
-            source.CloseRBNBConnection();
-            mainHandler.obtainMessage(MyEvent.STATE_INTERNET_THREAD_STOP).sendToTarget();
+            cancel();
         }
     }
-    @Override
+
     public void cancel() {
+        interrupt();
+        Log.i(TAG, "END SimpleInternetThread");
+        stopTimer();
+        source.CloseRBNBConnection();
+        mainHandler.obtainMessage(MyEvent.STATE_INTERNET_THREAD_STOP).sendToTarget();
     }
     public synchronized long getByteSend() {
         long buffer = lastByteSend;
@@ -126,71 +145,65 @@ public class SimpleInternetThreadImpl extends Thread implements InternetThread {
             sMap.PutMime(channelIndexs[i], "application/octet-stream");
         }
         source.Register(sMap);
-        Log.d(TAG, "CHANNEL CREATE");
+        if (DEBUG) Log.d(TAG, "create dataturbine channel");
     }
 
-    @Override
     public boolean isNotFull() {
         return blockingQueue.remainingCapacity() > 0;
     }
 
-    @Override
     public boolean isEmpty() {
         return blockingQueue.isEmpty();
     }
 
-    @Override
-    public boolean sendMyMessage(MyMessage message) {
+    /**
+     * send message to PacketReader
+     * @param byteData array of raw data from incoming message
+     * @return success or exception
+     */
+    public synchronized void sendMessage(byte[] byteData) {
+
+        // if secTimestmp is not set; set it from current android timestamp
+        if (!isInitTimeSeries) {
+            isInitTimeSeries = true;
+            double timestamp = (double)(System.currentTimeMillis())/1000.0d;
+            // set timestamp in every channel
+            for (int i=0; i < MAX_CHANNEL; i++) secTimestamp[i] = timestamp;
+            if (DEBUG) Log.d(TAG, "Automatic Set Timestamp:" + Double.toString(timestamp));
+        }
+        // send to PacketReader waited the timer to send parse data to dataturbine
+        packetReader.readByte(byteData);
+    }
+
+    /**
+     * set timestamp in all channel
+     * @param timestamp in seconds
+     */
+    public synchronized void setSecTimestamp(double timestamp) {
+        for (int i=0; i < MAX_CHANNEL; i++) {
+            secTimestamp[i] = timestamp;
+        }
+    }
+
+    /**
+     * This function send to parsed message to message queue running in main loop
+     * @param message a parsed message ready to send
+     * @return success or exception
+     */
+    private boolean sendMyMessage(MyMessage message) {
         try {
             blockingQueue.put(message);
             return true;
         } catch (InterruptedException e) {
-            Log.d(TAG, "Cannot put message");
+            Log.e(TAG, "Cannot put message", e);
         }
         return false;
     }
-    public boolean sendMyMessage(byte[] byteData) {
 
-        if (!isInitTimeSeries) {
-            isInitTimeSeries = true;
-            secTimestamp = (double)(System.currentTimeMillis())/1000.0d;
-            Log.d(TAG, "Time:" + Double.toString(secTimestamp));
-        }
-        packetReader.readByte(byteData);
-        return true;
-
-        /* below this a protocol I
-        if (byteData.length >= 8) {
-            id = byteData[0] << 24;
-            id += byteData[1] << 16;
-            id += byteData[2] << 8;
-            id += byteData[3];
-            channel = byteData[4];
-            opt = byteData[5];
-
-            MyMessage message = new MyMessage(id, channel, opt);
-            shortLength = byteData.length - 6;
-            message.data = new int[shortLength/2];
-            message.time = new double[shortLength/2];
-            for(int i=0,len = shortLength/2; i < len; i++) {
-                message.data[i] = (byteData[6 + 2 * i] << 8);
-                message.data[i] += byteData[7 + 2 * i];
-                message.time[i] = secTimestamp;
-                secTimestamp += secSamplingTime;
-            }
-            //Log.d(TAG, "shortLength: " + shortLength);
-            //Log.d(TAG, "secSamplingTime: " + secSamplingTime);
-            //Log.d(TAG, "secNextTimeFrame: " + secNextTimeFrame);
-            return sendMyMessage(message);
-        }*/
-    }
-
-    @Override
-    public void setSecTimestamp(double timestamp) {
-        secTimestamp = timestamp;
-    }
-
-    public void startTimer() {
+    /**
+     * This function start the timer to send the stored data in PacketReader to message queue
+     */
+    private synchronized void startTimer() {
         mTimerForSendMessage = new Runnable() {
             @Override
             public void run() {
@@ -198,17 +211,16 @@ public class SimpleInternetThreadImpl extends Thread implements InternetThread {
                 // foreach data channel for one patient
                 for (int channel_index = 0; channel_index < MAX_CHANNEL; channel_index++) {
 
-                    //Get data from packetreader buffer
+                    //Get data from PacketReader buffer
                     int length = arrayChannel.get(channel_index).size();
                     if (length > 0) {
                         Integer[] dataInt = arrayChannel.get(channel_index).toArray(new Integer[length]);
 
-                        //clear packetreader data
+                        //clear PacketReader data on this channel
                         synchronized (mLock) {
                                 arrayChannel.get(channel_index).clear();
                         }
-
-                        //construct dataturbine packet
+                        //construct DataTurbine packet
                         MyMessage message = new MyMessage(channel_index, (byte) channel_index, (byte) 0);
                         message.data = new int[length];
                         message.time = new double[length];
@@ -216,21 +228,24 @@ public class SimpleInternetThreadImpl extends Thread implements InternetThread {
                         // foreach data in this channel
                         for (int i = 0; i < length; i++) {
                             message.data[i] = dataInt[i];
-                            message.time[i] = secTimestamp;
-                            secTimestamp += secSamplingTime;
+                            message.time[i] = secTimestamp[channel_index];
+                            secTimestamp[channel_index] += secSamplingTime;
                         }
                         sendMyMessage(message);
                     }
                 }
-
-                //rerun timer
+                // re-run runnable function again every 100 msec
                 mHandler.postDelayed(mTimerForSendMessage, 100);
             }
         };
+        // first start runnable function in handler
         mHandler.postDelayed(mTimerForSendMessage, 100);
     }
 
-    public void stopTimer() {
+    /**
+     * This function stop timer to send the data from PacketReader to message queue
+     */
+    private synchronized void stopTimer() {
         mHandler.removeCallbacks(mTimerForSendMessage);
     }
 }

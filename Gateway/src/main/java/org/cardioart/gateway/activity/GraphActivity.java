@@ -163,6 +163,7 @@ public class GraphActivity extends AppCompatActivity implements Handler.Callback
         spinner.setOnItemSelectedListener(this);
         //Start bluetooth thread
         if (mBluetoothAdapter.isEnabled()) {
+            mBluetoothAdapter.cancelDiscovery();
             commHelper.start();
             commHelper.connect(mBluetoothAdapter.getRemoteDevice(deviceAddress));
             //Start PacketReader thread
@@ -210,8 +211,6 @@ public class GraphActivity extends AppCompatActivity implements Handler.Callback
 
     @Override
     protected void onResume() {
-        //Show toast on resume
-        Toast.makeText(GraphActivity.this, "Resume", Toast.LENGTH_SHORT).show();
         //Enable GPS from Google Location Service
         if (gpsHelper.isConnected()) {
             gpsHelper.startLocationUpdates();
@@ -267,7 +266,6 @@ public class GraphActivity extends AppCompatActivity implements Handler.Callback
                         for (int i = 0, length = newData.length; i < length; i++) {
                             data1Time += 1;
                             data1.remove(0);
-                            //TODO: aad unit conversion
                             data1.add(new GraphViewData(data1Time, newData[i].doubleValue() * ADC_TO_VOLTAGE_UNIT_MULTIPLIER));
                         }
 
@@ -335,7 +333,6 @@ public class GraphActivity extends AppCompatActivity implements Handler.Callback
         mainHandler.postDelayed(mTimerMonitorSpeed, 1000);
         mainHandler.postDelayed(mTimerGPS, 3000);
         mainHandler.postDelayed(mTimerGraphPlot, 100);
-
 
         super.onResume();
     }

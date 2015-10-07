@@ -16,6 +16,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.UUID;
 
 /**
@@ -25,14 +26,16 @@ public class BluetoothCommClient extends BluetoothConnection {
 
     // Debuging
     private static final UUID MY_UUID       = UUID.fromString("513a6c9c-ea27-4abd-90c0-6997dd532866");
-    private static final String TAG         = "gateway";
+    private static final String TAG         = "BTCLIENT";
     private static final boolean DEBUG      = true;
 
     // Member field
     private Handler mainHandler;
+    private Runnable mTimer;
     private ConnectThread mConnectThread;
     private ConnectedThread mConnectedThread;
     private BluetoothAdapter mAdapter;
+    private BluetoothDevice mDevice;
     private CommState commState;
     private long rxByte = 0;
     private long txByte = 0;
@@ -55,7 +58,7 @@ public class BluetoothCommClient extends BluetoothConnection {
      * @param state
      */
     private synchronized void setState(CommState state) {
-        if (DEBUG) Log.d(TAG, "setState()" + commState + " -> " + state);
+        if (DEBUG) Log.d(TAG, "setState() " + commState + " -> " + state);
         commState = state;
     }
 
@@ -90,12 +93,13 @@ public class BluetoothCommClient extends BluetoothConnection {
         }
 
         setState(CommState.NONE);
+        starTimer();
     }
 
     @Override
     public synchronized void connect(BluetoothDevice device) {
         if (DEBUG) Log.d(TAG, "connect to: " + device.getName());
-
+        mDevice = device;
         // cancel any thread attempting to make a connection
         if (commState == CommState.CONNECTING) {
             if (mConnectThread != null) {mConnectThread.cancel();mConnectThread = null;}
@@ -130,7 +134,7 @@ public class BluetoothCommClient extends BluetoothConnection {
         mConnectedThread.start();
 
         // TODO: send the name of connected device to main ui
-        mainHandler.obtainMessage(MyEvent.STATE_BT_RX_UP);
+        mainHandler.obtainMessage(MyEvent.STATE_BT_RX_UP).sendToTarget();
 
         setState(CommState.CONNECTED);
     }
@@ -141,7 +145,7 @@ public class BluetoothCommClient extends BluetoothConnection {
     @Override
     public synchronized void stop() {
         if (DEBUG) Log.d(TAG, "stop");
-
+        stopTimer();
 
         if (mConnectThread != null) {
             mConnectThread.cancel();
@@ -152,6 +156,7 @@ public class BluetoothCommClient extends BluetoothConnection {
             mConnectedThread.cancel();
             mConnectedThread = null;
         }
+        mDevice = null;
         mainHandler.obtainMessage(MyEvent.STATE_BT_RX_DOWN);
         setState(CommState.NONE);
     }
@@ -184,16 +189,45 @@ public class BluetoothCommClient extends BluetoothConnection {
 
     private void connectionFailed() {
         if (DEBUG) Log.d(TAG, "connection failed");
-        mainHandler.obtainMessage(MyEvent.STATE_BT_RX_DOWN);
+        mainHandler.obtainMessage(MyEvent.STATE_BT_RX_DOWN).sendToTarget();
+        mainHandler.obtainMessage(MyEvent.STATE_DEBUG_MSG, "connection failed").sendToTarget();
         setState(CommState.NONE);
     }
 
     private void connectionLost() {
         if (DEBUG) Log.d(TAG, "connection lost");
-        mainHandler.obtainMessage(MyEvent.STATE_BT_RX_DOWN);
+        mainHandler.obtainMessage(MyEvent.STATE_BT_RX_DOWN).sendToTarget();
+        mainHandler.obtainMessage(MyEvent.STATE_DEBUG_MSG, "connection lost").sendToTarget();
         setState(CommState.NONE);
     }
 
+    /**
+     * start timer for automatic connect bluetooth device when in NONE state
+     */
+    private synchronized void starTimer() {
+        mTimer = new Runnable() {
+            @Override
+            public void run() {
+                if (getState() == CommState.NONE && mDevice != null) {
+                    if (DEBUG) Log.d(TAG, "retry connect()");
+                    mainHandler.obtainMessage(MyEvent.STATE_DEBUG_MSG, "retry connect bluetooth");
+                    connect(mDevice);
+                    mainHandler.postDelayed(mTimer, 300);
+                } else {
+                    mainHandler.postDelayed(mTimer, 1000);
+                }
+
+            }
+        };
+        mainHandler.postDelayed(mTimer, 10);
+    }
+
+    /**
+     * stop timer for automatic connect bluetooth device
+     */
+    private synchronized void stopTimer() {
+        mainHandler.removeCallbacks(mTimer);
+    }
     /**
      * Thread handles to make a connection to bluetooth device
      * then report a success or fail
@@ -237,15 +271,14 @@ public class BluetoothCommClient extends BluetoothConnection {
                 // a blocking call and will return only success or exception
                 mmSocket.connect();
             } catch (IOException e) {
-                // report connection failed to main ui
-                commClient.get().connectionFailed();
-
                 // close the socket
                 try {
                     mmSocket.close();
                 } catch (IOException e2) {
                     Log.e(TAG, "unable to close() socket during connection failure", e2);
                 }
+                // report connection failed to main ui
+                commClient.get().connectionFailed();
                 return;
             }
 
@@ -305,9 +338,8 @@ public class BluetoothCommClient extends BluetoothConnection {
                 try {
                     // read from the input stream
                     bytes = mInputStream.read(buffer);
-
                     // send buffer to main ui
-                    mainHandler.get().obtainMessage(MyEvent.STATE_PACKETREADER_THREAD_MSG, buffer).sendToTarget();
+                    mainHandler.get().obtainMessage(MyEvent.STATE_INTERNET_THREAD_MSG, Arrays.copyOf(buffer, bytes)).sendToTarget();
                     // increase size of total incoming data
                     commClient.get().increaseRxByte(bytes);
                 } catch (IOException e) {

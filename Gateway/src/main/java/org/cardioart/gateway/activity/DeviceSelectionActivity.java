@@ -34,15 +34,21 @@ import org.cardioart.gateway.api.helper.bluetooth.BluetoothScanHelper;
 import org.cardioart.gateway.fragment.DeviceModeDialogFragment;
 
 public class DeviceSelectionActivity extends AppCompatActivity implements Handler.Callback {
+    // debugging
     private static final String TAG = "gateway";
 
+    // UI variables
     private ArrayAdapter<String> adapterPaired;
     private Button pingServerButton;
     private EditText editTextServerIp;
-    private Handler mainHandle;
+    private EditText editTextPatientId;
+    private String phoneNumber;
+
+    // boolean flags
     private boolean isValidServer = false;
     private boolean isValidPatientName = false;
 
+    // constants
     public static final String PREF_NAME = "BtG_Pref";
     public static final String OSDT_PORT = "3333";
     public BluetoothScanHelper bluetoothScanHelper;
@@ -59,13 +65,10 @@ public class DeviceSelectionActivity extends AppCompatActivity implements Handle
 
         // Bluetooth Helper
         bluetoothScanHelper = new BluetoothScanHelper(this);
-        bluetoothScanHelper.setTextViewStatus((Button) findViewById(R.id.buttonSearch));
+        //bluetoothScanHelper.setTextViewStatus((Button) findViewById(R.id.buttonSearch));
         bluetoothScanHelper.enableBluetooth();
-        // Main handler for this activity
-        mainHandle = new Handler(this);
 
         ListView listViewPaired = (ListView) findViewById(R.id.listViewPaired);
-        Button buttonSearch = (Button) findViewById(R.id.buttonSearch);
 
         adapterPaired = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1);
         listViewPaired.setAdapter(adapterPaired);
@@ -76,52 +79,46 @@ public class DeviceSelectionActivity extends AppCompatActivity implements Handle
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 boolean[] showDeviceModeMenu = new boolean[] {true, true};
                 if (!isValidPatientName) {
-                    Toast.makeText(DeviceSelectionActivity.this, "Invalid Patient name", Toast.LENGTH_LONG).show();
+                    //Toast.makeText(DeviceSelectionActivity.this, "Invalid Patient name", Toast.LENGTH_LONG).show();
                     // disable gateway activity
-                    showDeviceModeMenu[1] = false;
+                    //showDeviceModeMenu[1] = false;
                 }
                 if (!isValidServer) {
-                    Toast.makeText(DeviceSelectionActivity.this, "Invalid Server", Toast.LENGTH_LONG).show();
+                    //Toast.makeText(DeviceSelectionActivity.this, "Invalid Server", Toast.LENGTH_LONG).show();
                     // disable gateway activity
-                    showDeviceModeMenu[1] = false;
+                    //showDeviceModeMenu[1] = false;
                 }
                 String device_name = (String) adapterView.getItemAtPosition(i);
-                String device_address = bluetoothScanHelper.getDeviceAddressFromName(device_name);
-                DialogFragment dialogFragment = DeviceModeDialogFragment.newInstance(device_name, device_address, showDeviceModeMenu);
+                DialogFragment dialogFragment = DeviceModeDialogFragment.newInstance(device_name, showDeviceModeMenu);
                 dialogFragment.show(getFragmentManager(), "devicemode");
             }
         });
-
-        buttonSearch.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                bluetoothScanHelper.searchDevice();
-            }
-        });
-
+        /*
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         this.registerReceiver(bluetoothScanHelper.getReceiver(), filter);
         filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-        this.registerReceiver(bluetoothScanHelper.getReceiver(), filter);
+        this.registerReceiver(bluetoothScanHelper.getReceiver(), filter);*/
 
-        bluetoothScanHelper.searchDevice();
+        bluetoothScanHelper.listPairedDevice();
 
         // Get Phone number from SIM CARD
         // this can view manually by going to setting > phone > sim card manager
         TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-        final String simNumber = telephonyManager.getLine1Number();
+        phoneNumber = telephonyManager.getLine1Number();
 
         // Set DeviceId using SimNumber and SimSerialNumber
         TextView textViewDeviceId = (TextView) findViewById(R.id.textViewDeviceID);
-        textViewDeviceId.setText(simNumber);
+        textViewDeviceId.setText(phoneNumber);
 
         // load preferences from device
         SharedPreferences settings = getSharedPreferences(PREF_NAME, 0);
         String patientId = settings.getString("patientID", "1010-demo");
         final String serverIp = settings.getString("serverIP", "128.199.136.68");
+
         // Set Default PatientID
-        final EditText editTextPatientId = (EditText) findViewById(R.id.editTextPatientID);
+        editTextPatientId = (EditText) findViewById(R.id.editTextPatientID);
         editTextPatientId.setText(patientId);
+
         // Set Validation event when user edited PatientID
         editTextPatientId.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
@@ -148,17 +145,26 @@ public class DeviceSelectionActivity extends AppCompatActivity implements Handle
         pingServerButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                String serverIp = editTextServerIp.getText().toString();
                 Toast.makeText(DeviceSelectionActivity.this,
                         "Checking Server " + serverIp + ":" + OSDT_PORT, Toast.LENGTH_LONG).show();
-                new PingServerTask().execute(serverIp + ":" + OSDT_PORT, simNumber);
+                new PingServerTask().execute(serverIp + ":" + OSDT_PORT, phoneNumber);
             }
         });
 
-        // disable ketboard autodisplay on editView
+        // disable keyboard autodisplay on editView
         this.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
     }
 
-
+    public void onModeSelected(Class<?> activityClass, String deviceName) {
+        Intent intent = new Intent(this, activityClass);
+        intent.putExtra("device_name", deviceName);
+        intent.putExtra("device_address", bluetoothScanHelper.getDeviceAddressFromName(deviceName));
+        intent.putExtra("patient_id", editTextPatientId.getText().toString());
+        intent.putExtra("server_address", editTextServerIp.getText().toString() + ":" + OSDT_PORT);
+        intent.putExtra("phone_name", phoneNumber);
+        startActivity(intent);
+    }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -188,14 +194,15 @@ public class DeviceSelectionActivity extends AppCompatActivity implements Handle
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == BluetoothScanHelper.REQUEST_ENABLE_BT) {
             if (resultCode == RESULT_CANCELED) {
-                System.exit(2);
+                finish();
             }
+            bluetoothScanHelper.listPairedDevice();
         }
     }
 
     @Override
     protected void onDestroy() {
-        this.unregisterReceiver(bluetoothScanHelper.getReceiver());
+        //this.unregisterReceiver(bluetoothScanHelper.getReceiver());
         super.onDestroy();
     }
 
@@ -231,7 +238,9 @@ public class DeviceSelectionActivity extends AppCompatActivity implements Handle
                 Source source = new Source(2048, "none", 2048);
                 source.CloseRBNBConnection();
                 source.OpenRBNBConnection(serverAddress, simNumber);
-                return source.VerifyConnection();
+                boolean result = source.VerifyConnection();
+                source.CloseRBNBConnection();
+                return result;
             } catch (Exception exception) {
                 exception.printStackTrace();
             }

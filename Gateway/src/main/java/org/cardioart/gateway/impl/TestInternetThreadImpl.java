@@ -61,25 +61,25 @@ public class TestInternetThreadImpl extends Thread implements InternetThread {
             mainHandler.obtainMessage(MyEvent.STATE_INTERNET_THREAD_STOP).sendToTarget();
         }
     }
-    @Override
-    public void cancel() {
-    }
-    public double getSine(int x) {
-        return Math.sin((Math.PI*x/5000)); // 10Hz
-    }
+    public void start() {}
+    public void cancel() {}
     public synchronized long getByteSend() {
         long buffer = lastByteSend;
         lastByteSend = source.BytesTransferred();
         return lastByteSend - buffer;
     }
-
-    private void initialDataturbineChannel() throws SAPIException{
+    public void sendMessage(byte[] data) {}
+    public void setSecTimestamp(double time) {}
+    private double getSine(int x) {
+        return Math.sin((Math.PI*x/5000)); // 10Hz
+    }
+    private void initialDataturbineChannel() throws SAPIException {
         source = new Source(2048, "none", 2048);
         source.CloseRBNBConnection();
         source.OpenRBNBConnection("192.168.2.100:3333", "Android1");
         sMap = new ChannelMap();
         sMap.PutTimeAuto("timeofday");
-        for (int i=0; i<channelNames.length; i++) {
+        for (int i = 0; i < channelNames.length; i++) {
             sMap.Add(channelNames[i]);
             channelIndexs[i] = sMap.GetIndex(channelNames[i]);
             sMap.PutUserInfo(channelIndexs[i], "units=n, property=value");
@@ -88,24 +88,4 @@ public class TestInternetThreadImpl extends Thread implements InternetThread {
         source.Register(sMap);
         Log.d(TAG, "CHANNEL CREATE");
     }
-
-    @Override
-    public boolean isNotFull() {
-        return false;
-    }
-
-    @Override
-    public boolean isEmpty() {
-        return true;
-    }
-
-    @Override
-    public boolean sendMyMessage(MyMessage message) {
-        return true;
-    }
-    public boolean sendMyMessage(byte[] data) {
-        return true;
-    }
-    @Override
-    public void setSecTimestamp(double time) {};
 }

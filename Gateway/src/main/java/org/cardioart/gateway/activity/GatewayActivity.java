@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.location.Location;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
@@ -17,6 +18,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -28,6 +30,7 @@ import org.cardioart.gateway.api.helper.bluetooth.BluetoothConnection;
 import org.cardioart.gateway.api.helper.bluetooth.BluetoothScanHelper;
 import org.cardioart.gateway.api.thread.InternetThread;
 import org.cardioart.gateway.impl.BluetoothCommClient;
+import org.cardioart.gateway.impl.GPSInternetThreadImpl;
 import org.cardioart.gateway.impl.SimpleInternetThreadImpl;
 
 public class GatewayActivity extends ActionBarActivity implements Handler.Callback {
@@ -35,9 +38,12 @@ public class GatewayActivity extends ActionBarActivity implements Handler.Callba
     private Handler mainHandler;
     private BluetoothConnection commHelper;
     private InternetThread internetThread;
+    private InternetThread gpsThread;
     private EditText debugEditText;
-    private TextView btServerStatus, btRxStatus, wifiClientStatus, wifiTxStatus;
-    private TextView textViewTxSpeed, textViewRxSpeed, textViewConnectivityStatus;
+    private TextView btRxStatus, wifiTxStatus;
+    private TextView textViewTxSpeed, textViewRxSpeed, textViewConnectivityStatus,
+            textViewLat, textViewLong;
+    private Button buttonBt, buttonWifi;
 
     public static final String TAG = "BtG";
     public static final int REQUEST_ENABLE_BT = 2718;
@@ -46,7 +52,6 @@ public class GatewayActivity extends ActionBarActivity implements Handler.Callba
     private boolean isDebug = true;
     private boolean isBtEnable = false;
     private boolean isWifiEnable = false;
-    private boolean isBtServerActive = false;
     private boolean isBtRxActive = false;
     private boolean isWifiClientActive = false;
     private boolean isWifiTxActive = false;
@@ -56,15 +61,23 @@ public class GatewayActivity extends ActionBarActivity implements Handler.Callba
 
     private String deviceName;
     private String deviceAddress;
+    private String serverAddress;
+    private String patientId;
+    private String phoneName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_gateway);
 
+        // get intent parameters
         deviceName = getIntent().getStringExtra("device_name");
         deviceAddress = getIntent().getStringExtra("device_address");
+        phoneName = getIntent().getStringExtra("phone_name");
+        patientId = getIntent().getStringExtra("patient_id");
+        serverAddress = getIntent().getStringExtra("server_address");
 
+        // initial support helper
         mainHandler = new Handler(this);
         commHelper = new BluetoothCommClient(mainHandler);
 
@@ -73,20 +86,23 @@ public class GatewayActivity extends ActionBarActivity implements Handler.Callba
             startActivityForResult(enableBluetoothIntent, REQUEST_ENABLE_BT);
         }
 
+        // cache EditText and TextView for later usage
         debugEditText = (EditText) findViewById(R.id.editText);
-        btServerStatus = (TextView) findViewById(R.id.btServerStatus);
         btRxStatus = (TextView) findViewById(R.id.btRxStatus);
-        wifiClientStatus = (TextView) findViewById(R.id.wifiClientStatus);
         wifiTxStatus = (TextView) findViewById(R.id.wifiTxStatus);
         textViewRxSpeed = (TextView) findViewById(R.id.textViewRxSpeed);
         textViewTxSpeed = (TextView) findViewById(R.id.textViewTxSpeed);
         textViewConnectivityStatus = (TextView) findViewById(R.id.textViewConnectivity);
+        textViewLat = (TextView) findViewById(R.id.textViewLat);
+        textViewLong = (TextView) findViewById(R.id.textViewLong);
+        buttonBt = (Button) findViewById(R.id.buttonBt);
+        buttonWifi = (Button) findViewById(R.id.buttonWifi);
 
+        // set default color to text status
         btRxStatus.setTextColor(Color.DKGRAY);
-        btServerStatus.setTextColor(Color.DKGRAY);
-        wifiClientStatus.setTextColor(Color.DKGRAY);
         wifiTxStatus.setTextColor(Color.DKGRAY);
 
+        // check the internet connectivity and change color of status
         if (isConnected()) {
             textViewConnectivityStatus.setText("Online");
             textViewConnectivityStatus.setBackgroundColor(Color.parseColor("#FF77E25F"));
@@ -100,50 +116,36 @@ public class GatewayActivity extends ActionBarActivity implements Handler.Callba
     @Override
     public boolean handleMessage(Message message) {
         switch (message.what) {
-            case MyEvent.STATE_BT_SERVER_UP:
-                if (!isBtServerActive) {
-                    isBtServerActive = true;
-                    btServerStatus.setTextColor(Color.GREEN);
-                }
-                break;
-            case MyEvent.STATE_BT_SERVER_DOWN:
-                if (isBtServerActive) {
-                    isBtServerActive = false;
-                    btServerStatus.setTextColor(Color.DKGRAY);
-                }
-                break;
             case MyEvent.STATE_BT_RX_UP:
                 if (!isBtRxActive) {
                     isBtRxActive = true;
                     btRxStatus.setTextColor(Color.GREEN);
-                    double time = System.currentTimeMillis()/1000.d;
-                    internetThread.setSecTimestamp(time);
+                    if (internetThread != null) {
+                        double time = System.currentTimeMillis() / 1000.d;
+                        internetThread.setSecTimestamp(time);
+                    }
+                    buttonBt.setText("Stop BT");
                 }
                 break;
             case MyEvent.STATE_BT_RX_DOWN:
                 if (isBtRxActive) {
                     isBtRxActive = false;
                     btRxStatus.setTextColor(Color.DKGRAY);
+                    buttonBt.setText("Start BT");
                 }
                 break;
             case MyEvent.STATE_INTERNET_THREAD_START:
-                if (!isWifiClientActive) {
-                    isWifiClientActive = true;
-                    wifiClientStatus.setTextColor(Color.GREEN);
-                }
                 if (!isWifiTxActive) {
                     isWifiTxActive = true;
                     wifiTxStatus.setTextColor(Color.GREEN);
+                    buttonWifi.setText("Stop Wifi");
                 }
                 break;
             case MyEvent.STATE_INTERNET_THREAD_STOP:
-                if (isWifiClientActive) {
-                    isWifiClientActive = false;
-                    wifiClientStatus.setTextColor(Color.DKGRAY);
-                }
                 if (isWifiTxActive) {
                     isWifiTxActive = false;
                     wifiTxStatus.setTextColor(Color.DKGRAY);
+                    buttonWifi.setText("Start Wifi");
                 }
                 if (isWifiEnable) {
                     isWifiEnable = false;
@@ -151,8 +153,13 @@ public class GatewayActivity extends ActionBarActivity implements Handler.Callba
                 break;
             case MyEvent.STATE_INTERNET_THREAD_MSG:
                 if (isWifiTxActive) {
-                    internetThread.sendMyMessage((byte[]) message.obj);
+                    internetThread.sendMessage((byte[]) message.obj);
                 }
+                break;
+            case MyEvent.STATE_GPS_MSG:
+                Location location = (Location) message.obj;
+                textViewLat.setText(String.format("%.5f", location.getLatitude()));
+                textViewLong.setText(String.format("%.5f", location.getLongitude()));
                 break;
             case MyEvent.STATE_DEBUG_RX:
                 if (message.obj != null) {
@@ -166,7 +173,10 @@ public class GatewayActivity extends ActionBarActivity implements Handler.Callba
                 break;
             case MyEvent.STATE_DEBUG_MSG:
             default:
-                debugMessage((CharSequence)message.obj);
+                if (message.obj != null) {
+                    String text = new String((byte[]) message.obj);
+                    debugMessage(text);
+                }
                 break;
         }
         return false;
@@ -177,7 +187,7 @@ public class GatewayActivity extends ActionBarActivity implements Handler.Callba
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == BluetoothScanHelper.REQUEST_ENABLE_BT) {
             if (resultCode == RESULT_CANCELED) {
-                System.exit(2);
+                finish();
             }
         }
     }
@@ -214,7 +224,11 @@ public class GatewayActivity extends ActionBarActivity implements Handler.Callba
         commHelper.stop();
         if (internetThread != null) {
             internetThread.cancel();
-            internetThread.interrupt();
+            internetThread = null;
+        }
+        if (gpsThread != null) {
+            gpsThread.cancel();
+            gpsThread = null;
         }
         super.onDestroy();
     }
@@ -238,7 +252,6 @@ public class GatewayActivity extends ActionBarActivity implements Handler.Callba
     public void enableBluetooth(View v) {
         if (!isBtEnable) {
             isBtEnable = true;
-            //TODO: test
             commHelper.start();
             commHelper.connect(mBluetoothAdapter.getRemoteDevice(deviceAddress));
         } else {
@@ -248,28 +261,39 @@ public class GatewayActivity extends ActionBarActivity implements Handler.Callba
     }
     public void enableWifi(View v) {
         if (!isWifiEnable) {
-            isWifiEnable = true;
             if (isInternetActive) {
+                isWifiEnable = true;
                 if (internetThread != null) {
                     internetThread.cancel();
-                    internetThread.interrupt();
+                    internetThread = null;
                 }
+                if (gpsThread != null) {
+                    gpsThread.cancel();
+                    gpsThread = null;
+                }
+                // start new internet threads
                 try {
                     //internetThread = new TestInternetThreadImpl(mainHandler);
-                    internetThread = new SimpleInternetThreadImpl(mainHandler);
+                    internetThread = new SimpleInternetThreadImpl(mainHandler, serverAddress, phoneName, patientId);
                     internetThread.start();
-                } catch (SAPIException e) {
-                    Log.d(TAG, "SAPIExp: " + e.getLocalizedMessage());
+                    gpsThread = new GPSInternetThreadImpl(this, mainHandler, serverAddress, phoneName, patientId);
+                    gpsThread.start();
+                } catch (Exception e) {
+                    Log.e(TAG, "unable to create InternetThread", e);
                 }
+            } else {
+                debugMessage("please connect internet before start Wifi");
             }
-            Log.d(TAG, "");
         } else {
             isWifiEnable =false;
             if (internetThread != null) {
                 internetThread.cancel();
-                internetThread.interrupt();
+                internetThread = null;
             }
-            Log.d(TAG, "");
+            if (gpsThread != null) {
+                gpsThread.cancel();
+                gpsThread = null;
+            }
         }
     }
     public void debugMessage(CharSequence text) {

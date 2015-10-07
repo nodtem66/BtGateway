@@ -78,19 +78,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/ping_server_button" />
-    <Button
-        android:id="@+id/buttonSearch"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/search_button"
-        android:clickable="false"
-        android:enabled="true" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="4. Select Paired"
+        android:text="3. Select Paired"
         android:id="@+id/textView1"
         android:layout_margin="10dp"
         android:textColor="#FF0099FF" />

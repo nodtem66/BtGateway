@@ -7,7 +7,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.util.Log;
+import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -28,7 +30,7 @@ public class BluetoothScanHelper {
     private Context context;
     private ArrayAdapter<String> PairedAdapter;
     private ArrayAdapter<String> DetectedAdapter;
-    private TextView textViewStatus;
+    private Button textViewStatus;
 
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
@@ -52,9 +54,6 @@ public class BluetoothScanHelper {
                     Toast.makeText(context, "No Bluetooth Devices", Toast.LENGTH_LONG).show();
                     Log.d("BT", "No BT Devices");
                 }
-                textViewStatus.setText(context.getText(R.string.search_button));
-                textViewStatus.setTextColor(Color.parseColor("#FFFFFFFF"));
-                textViewStatus.setEnabled(true);
             }
         }
     };
@@ -74,19 +73,15 @@ public class BluetoothScanHelper {
             activity.startActivityForResult(enableBluetoothIntent, REQUEST_ENABLE_BT);
         }
     }
+    public void listPairedDevice() {
+        PairedAdapter.clear();
+        searchPairedDevice();
+    }
     public void searchDevice() {
         mBluetoothAdapter.cancelDiscovery();
+        mBluetoothAdapter.startDiscovery();
         //DetectedAdapter.clear();
-        PairedAdapter.clear();
         foundDevices.clear();
-        textViewStatus.setText("Searching...");
-        textViewStatus.setEnabled(false);
-        textViewStatus.setTextColor(Color.parseColor("#FF333333"));
-        searchPairedDevice();
-        textViewStatus.setText(context.getText(R.string.search_button));
-        textViewStatus.setTextColor(Color.parseColor("#FFFFFFFF"));
-        textViewStatus.setEnabled(true);
-        //mBluetoothAdapter.startDiscovery();
     }
     public void searchPairedDevice() {
         Set<BluetoothDevice> pairedDevice = mBluetoothAdapter.getBondedDevices();
@@ -104,7 +99,7 @@ public class BluetoothScanHelper {
     public BroadcastReceiver getReceiver() {
         return mReceiver;
     }
-    public void setTextViewStatus(TextView textViewStatus) {
+    public void setTextViewStatus(Button textViewStatus) {
         this.textViewStatus = textViewStatus;
     }
     public void setPairedAdapter(ArrayAdapter<String> adapter) {

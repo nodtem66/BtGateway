@@ -35,5 +35,4 @@ public abstract class BluetoothConnection {
     abstract public void connect(BluetoothDevice device);
     abstract public void connected(BluetoothSocket socket, BluetoothDevice device);
     abstract public long getRxSpeed();
-    abstract public long getTxSpeed();
 }

@@ -16,9 +16,7 @@ public class MyChannel {
     public static final byte ECG_LEAD_V4       = 9;
     public static final byte ECG_LEAD_V5       = 10;
     public static final byte ECG_LEAD_V6       = 11;
-    public static final byte SPO2              = 12;
-    public static final byte GPS               = 13;
-    public static final byte MAX               = 13;
+    public static final byte MAX               = 12;
 
     public static String getName(byte id) {
         switch (id) {
@@ -46,10 +44,6 @@ public class MyChannel {
                 return "ECG_LEAD_V5";
             case ECG_LEAD_V6:
                 return "ECG_LEAD_V6";
-            case SPO2:
-                return "SPO2";
-            case GPS:
-                return "GPS";
             default:
                 return null;
         }
